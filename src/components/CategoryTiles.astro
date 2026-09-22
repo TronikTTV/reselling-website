@@ -1,0 +1,44 @@
+---
+import type { CategorySummary } from '../lib/catalog';
+import { pluralise } from '../lib/format';
+import { productPhoto } from '../lib/images';
+import { categoryUrl } from '../lib/url';
+
+interface Props {
+  summaries: CategorySummary[];
+}
+
+// Each tile uses the first photo of the newest unsold product in that category.
+const tiles = await Promise.all(
+  Astro.props.summaries.map(async (summary) => {
+    const image = summary.cover?.data.images[0];
+    return { ...summary, photo: image ? await productPhoto(image) : undefined };
+  }),
+);
+---
+
+<div class="tiles">
+  {
+    tiles.map(({ category, count, photo }) => (
+      <a class="tile" href={categoryUrl(category.slug)}>
+        {photo && (
+          <img
+            src={photo.src}
+            srcset={photo.srcset}
+            sizes="160px"
+            width={photo.width}
+            height={photo.height}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+        <span class="tile__label">
+          <span class="tile__name">{category.name}</span>
+          <span class="tile__count">{pluralise(count, 'item')}</span>
+        </span>
+        <span class="tile__arrow" aria-hidden="true">↗</span>
+      </a>
+    ))
+  }
+</div>

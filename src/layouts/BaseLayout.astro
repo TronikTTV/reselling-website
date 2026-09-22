@@ -1,0 +1,55 @@
+---
+import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { settings } from '../lib/site';
+import { url } from '../lib/url';
+
+interface Props {
+  /** Page title. The store name is added automatically. */
+  title?: string;
+  description?: string;
+  /** Link-preview image from sharePreview() in src/lib/images.ts. */
+  image?: string;
+  /** Category slug to highlight in the header ("all" for the Shop all page). */
+  currentCategory?: string;
+  noindex?: boolean;
+}
+
+const { title, description = settings.tagline, image, currentCategory } = Astro.props;
+const fullTitle = title ? `${title} | ${settings.siteName}` : settings.siteName;
+const siteRoot = Astro.site ?? Astro.url;
+const canonical = new URL(Astro.url.pathname, siteRoot).href;
+const previewImage = image ? new URL(image, siteRoot).href : undefined;
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {Astro.props.noindex && <meta name="robots" content="noindex, nofollow" />}
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#f7f7f2" />
+
+    <!-- Link previews when the site is shared in WhatsApp, iMessage, Instagram, Discord… -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={settings.siteName} />
+    <meta property="og:title" content={title ?? settings.siteName} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:url" content={canonical} />
+    {previewImage && <meta property="og:image" content={previewImage} />}
+    <meta name="twitter:card" content={previewImage ? 'summary_large_image' : 'summary'} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header currentCategory={currentCategory} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

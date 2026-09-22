@@ -1,0 +1,70 @@
+---
+import { categoryOf, type Product } from '../lib/catalog';
+import { formatPrice, STATUS_LABELS } from '../lib/format';
+import { productPhoto } from '../lib/images';
+import { normalise } from '../lib/search';
+import { productUrl } from '../lib/url';
+
+interface Props {
+  product: Product;
+  /** Load the photo straight away (for cards at the top of the page). */
+  eager?: boolean;
+  /** Start hidden (ProductBrowser reveals cards in batches). */
+  hidden?: boolean;
+}
+
+const { product, eager = false, hidden = false } = Astro.props;
+const { title, brand, price, retailPrice, status, size, condition, tags, date, images } = product.data;
+const category = categoryOf(product);
+const photo = images[0] ? await productPhoto(images[0]) : undefined;
+const priceText = formatPrice(price);
+const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
+---
+
+<!--
+  The data-* attributes below are read by ProductBrowser's filter script.
+  Keep them on the card's outer element whatever the card ends up looking like.
+-->
+<article
+  class:list={['card', `card--${status}`]}
+  data-product
+  data-search={normalise([title, brand, category.name, size, condition, ...tags].filter(Boolean).join(' '))}
+  data-category={category.slug}
+  data-brand={brand ? normalise(brand) : ''}
+  data-price={price ?? ''}
+  data-status={status}
+  data-date={date?.getTime() ?? 0}
+  data-title={normalise(title)}
+  hidden={hidden}
+>
+  <a class="card__link" href={productUrl(product.id)}>
+    <div class="card__media">
+      {!photo && <span class="card__placeholder">Photos coming soon</span>}
+      {
+        photo && (
+          <img
+            src={photo.src}
+            srcset={photo.srcset}
+            sizes="(min-width: 1240px) 290px, (min-width: 1000px) 23vw, (min-width: 700px) 31vw, 48vw"
+            width={photo.width}
+            height={photo.height}
+            alt={title}
+            loading={eager ? 'eager' : 'lazy'}
+            decoding="async"
+          />
+        )
+      }
+      {status !== 'available' && <span class:list={['badge', `badge--${status}`]}>{STATUS_LABELS[status]}</span>}
+      <span class="card__view" aria-hidden="true">↗</span>
+    </div>
+    <div class="card__body">
+      <p class="card__brand">{brand || category.name}</p>
+      <h3 class="card__title">{title}</h3>
+      <p class="card__price">
+        {priceText ? <span>{priceText}</span> : <span class="card__ask">Ask for price</span>}
+        {showRetail && <s class="rrp">{formatPrice(retailPrice)}</s>}
+      </p>
+      {(size || condition) && <p class="card__detail">{[size, condition].filter(Boolean).join(' · ')}</p>}
+    </div>
+  </a>
+</article>

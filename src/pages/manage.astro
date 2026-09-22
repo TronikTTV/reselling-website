@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { url } from '../lib/url';
+---
+
+<BaseLayout title="Owner tools" noindex>
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">Behind the collection</p>
+      <h1 class="page-head__title">Your store, your way<span class="title-dot">.</span></h1>
+      <p class="page-head__desc">Manage your listings, update your prices and keep the collection fresh.</p>
+    </header>
+    <div class="manage-grid">
+      <section class="manage-panel">
+        <p class="eyebrow">01 / The editor</p>
+        <h2>Make it yours.</h2>
+        <p>Open the editor to add or remove listings, upload and reorder photos, change prices, sizes and availability, or pick your featured items.</p>
+        <a class="button" href={url('/admin/')}>Open store editor <span aria-hidden="true">↗</span></a>
+        <details>
+          <summary>Signing in for the first time</summary>
+          <p>On the live site, sign in with a GitHub access token for this store’s repository. Only your authorised GitHub account can save changes. A shared site password cannot authorise those edits.</p>
+          <p>On this PC, open the editor in Chrome or Edge, choose <strong>Work with Local Repository</strong> and select the website folder. Local changes need to be committed and pushed to go live.</p>
+          <p><a href="https://sveltiacms.app/en/docs/backends/github" target="_blank" rel="noopener">GitHub sign-in instructions ↗</a></p>
+        </details>
+        <details>
+          <summary>Change your store details</summary>
+          <p>In the editor, go to <strong>Settings → Store settings</strong> to change the store name, homepage heading, tagline, announcement, currency and contact links. Add at least one contact method so friends can message you about an item.</p>
+          <p>Go to <strong>Settings → Categories</strong> to add categories and arrange their order.</p>
+        </details>
+      </section>
+      <section class="manage-panel">
+        <p class="eyebrow">02 / Bulk additions</p>
+        <h2>A whole collection at once.</h2>
+        <p>The bulk import tools run on your PC. Preview a batch before adding it, then check the listings in the editor before publishing.</p>
+        <details open>
+          <summary>From product websites</summary>
+          <ol>
+            <li>Save product-page links, one per line, in <code>import/urls.txt</code>.</li>
+            <li>Preview with <code>npm run import:web -- --file import/urls.txt --category clothing --dry-run</code>. Replace <code>clothing</code> with your category.</li>
+            <li>Remove <code>--dry-run</code> to download the photos and create the listings. Prices stay blank unless you add <code>--keep-prices</code>.</li>
+          </ol>
+          <p>Supports public pages with standard product data (JSON-LD), or a prepared JSON product export. Existing imports are skipped. Pages without supported product data are reported for review.</p>
+        </details>
+        <details>
+          <summary>Yupoo albums</summary>
+          <p>Direct Yupoo album importing needs a supplier-specific adapter, tested against your album link. It is not connected yet. Downloaded album photos can already be imported using the photo-folder method below.</p>
+        </details>
+        <details>
+          <summary>From photos on your PC</summary>
+          <p>Put each item’s photos in <code>import/category/Product name £25/</code>. Preview with <code>npm run import -- --dry-run</code>, then run <code>npm run import</code> to add them.</p>
+          <p>The folder name becomes the title and optional price. Photos are compressed automatically.</p>
+        </details>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

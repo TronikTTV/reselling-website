@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { shopUrl } from '../lib/url';
+---
+
+<BaseLayout title="Page not found">
+  <div class="container not-found">
+    <h1 class="page-head__title">Page not found</h1>
+    <p class="page-head__desc" style="margin-inline: auto">That item may have been removed. Have a look at everything else instead.</p>
+    <a class="button" href={shopUrl()}>Browse all products</a>
+  </div>
+</BaseLayout>

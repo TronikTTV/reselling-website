@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductBrowser from '../../components/ProductBrowser.astro';
+import { categoryOf, getCategorySummaries, getListedProducts, type CategorySummary } from '../../lib/catalog';
+import { pluralise } from '../../lib/format';
+import { sharePreview } from '../../lib/images';
+
+export async function getStaticPaths() {
+  const summaries = await getCategorySummaries();
+  return summaries.map((summary) => ({ params: { slug: summary.category.slug }, props: { summary } }));
+}
+
+interface Props {
+  summary: CategorySummary;
+}
+
+const { category, cover } = Astro.props.summary;
+const products = (await getListedProducts()).filter((product) => categoryOf(product).slug === category.slug);
+const previewPhoto = cover?.data.images[0];
+const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;
+---
+
+<BaseLayout
+  title={category.name}
+  description={category.description || `${pluralise(products.length, 'item')} in ${category.name}.`}
+  image={preview}
+  currentCategory={category.slug}
+>
+  <div class="container">
+    <header class="page-head">
+      <h1 class="page-head__title">{category.name}</h1>
+      {category.description && <p class="page-head__desc">{category.description}</p>}
+    </header>
+    <ProductBrowser products={products} />
+  </div>
+</BaseLayout>

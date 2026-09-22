@@ -1,0 +1,166 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Gallery from '../../components/Gallery.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import ShareButton from '../../components/ShareButton.astro';
+import { categoryOf, getAllProducts, getListedProducts, type Product } from '../../lib/catalog';
+import { contactLinks } from '../../lib/contact';
+import { formatPrice, STATUS_LABELS } from '../../lib/format';
+import { sharePreview } from '../../lib/images';
+import { normalise } from '../../lib/search';
+import { categoryUrl, shopUrl, url } from '../../lib/url';
+
+// Every product gets a page, sold ones included, so links people have shared keep working.
+export async function getStaticPaths() {
+  const products = await getAllProducts();
+  return products.map((product) => ({ params: { slug: product.id }, props: { product } }));
+}
+
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+const { title, brand, price, retailPrice, status, size, condition, tags, images } = product.data;
+const { Content } = await render(product);
+const hasDescription = Boolean(product.body?.trim());
+const category = categoryOf(product);
+const priceText = formatPrice(price);
+const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
+
+const pageUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
+const contacts = status === 'sold' ? [] : contactLinks({ title, url: pageUrl });
+const preview = images[0] ? await sharePreview(images[0]) : undefined;
+const description = [priceText, brand, size && `Size ${size}`, condition, status !== 'available' && STATUS_LABELS[status]]
+  .filter(Boolean)
+  .join(' · ');
+
+const related = (await getListedProducts())
+  .filter((other) => other.id !== product.id && other.data.status !== 'sold' && categoryOf(other).slug === category.slug)
+  .slice(0, 8);
+---
+
+<BaseLayout title={title} description={description || undefined} image={preview} currentCategory={category.slug}>
+  <div class="container">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href={url('/')}>Home</a>
+      <span aria-hidden="true">/</span>
+      <a href={categoryUrl(category.slug)}>{category.name}</a>
+    </nav>
+
+    <article class="product">
+      <Gallery images={images} alt={title} />
+
+      <div class="product__info">
+        {brand && <p class="product__brand">{brand}</p>}
+        <h1 class="product__title">{title}</h1>
+        <p class="product__price">
+          <span>{priceText ?? 'Ask for price'}</span>
+          {showRetail && <s class="rrp">{`RRP ${formatPrice(retailPrice)}`}</s>}
+        </p>
+        <p class:list={['status', `status--${status}`]}>{STATUS_LABELS[status]}</p>
+
+        <dl class="details">
+          {
+            size && (
+              <>
+                <dt>Size</dt>
+                <dd>{size}</dd>
+              </>
+            )
+          }
+          {
+            condition && (
+              <>
+                <dt>Condition</dt>
+                <dd>{condition}</dd>
+              </>
+            )
+          }
+          {
+            brand && (
+              <>
+                <dt>Brand</dt>
+                <dd>
+                  <a href={shopUrl({ brand: normalise(brand) })}>{brand}</a>
+                </dd>
+              </>
+            )
+          }
+          <dt>Category</dt>
+          <dd><a href={categoryUrl(category.slug)}>{category.name}</a></dd>
+        </dl>
+
+        <div class="actions">
+          {
+            status === 'sold' ? (
+              <p class="notice">
+                {'This one has sold. '}
+                <a href={categoryUrl(category.slug)}>{`See more in ${category.name}`}</a>
+              </p>
+            ) : (
+              contacts.length > 0 && (
+                <>
+                  <p class="actions__label">{status === 'reserved' ? 'Reserved. Message me to join the queue:' : 'Interested? Message me:'}</p>
+                  <div class="contact-buttons">
+                    {contacts.map((contact, index) => (
+                      <a
+                        class:list={['button', index > 0 && 'button--ghost']}
+                        href={contact.href}
+                        target={contact.external ? '_blank' : undefined}
+                        rel={contact.external ? 'noopener' : undefined}
+                      >
+                        {contact.label}
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )
+            )
+          }
+          {status !== 'sold' && contacts.length === 0 && <p class="notice">Interested? Send me this listing’s link to ask about it.</p>}
+          <ShareButton title={title} />
+        </div>
+
+        {
+          hasDescription && (
+            <div class="prose">
+              <Content />
+            </div>
+          )
+        }
+
+        {
+          tags.length > 0 && (
+            <div class="tags">
+              {tags.map((tag) => (
+                <a class="tag" href={shopUrl({ q: tag })}>
+                  {tag}
+                </a>
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </article>
+
+    {
+      related.length > 0 && (
+        <section class="section">
+          <div class="section__head">
+            <h2 class="section__title">{`More in ${category.name}`}</h2>
+            <a class="section__link" href={categoryUrl(category.slug)}>
+              See all
+            </a>
+          </div>
+          <div class="product-grid">
+            {related.map((other) => (
+              <ProductCard product={other} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>

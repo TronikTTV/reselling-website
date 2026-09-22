@@ -1,0 +1,24 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+
+# environment variables
+.env
+.env.*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.claude/
+
+# bulk-import inbox: raw photos stay on your PC, only the optimised copies get committed
+import/*
+!import/README.txt

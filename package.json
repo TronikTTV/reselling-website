@@ -1,0 +1,24 @@
+{
+  "name": "reselling-website",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "import": "node scripts/import-products.mjs",
+    "import:web": "node scripts/import-web.mjs",
+    "test:import": "node --test scripts/import-web.test.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.3.3",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^24.13.6",
+    "typescript": "^6.0.3"
+  }
+}

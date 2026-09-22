@@ -1,0 +1,147 @@
+---
+// Product photos: swipe on phones, thumbnails on bigger screens, tap a photo
+// to open the full-screen viewer.
+import type { ImageMetadata } from 'astro';
+import { productPhoto } from '../lib/images';
+
+interface Props {
+  images: ImageMetadata[];
+  alt: string;
+}
+
+const { images, alt } = Astro.props;
+const photos = await Promise.all(images.map((image) => productPhoto(image)));
+const label = (index: number) => (photos.length > 1 ? `${alt}, photo ${index + 1} of ${photos.length}` : alt);
+---
+
+<div class="gallery" data-gallery>
+  {
+    photos.length === 0 ? (
+      <div class="gallery__empty">No photos yet</div>
+    ) : (
+      <>
+        <div class="gallery__viewport">
+          <div class="gallery__track" data-track>
+            {photos.map((photo, index) => (
+              <button type="button" class="gallery__slide" data-slide={index} aria-label={`View ${label(index)} full screen`}>
+                <img
+                  src={photo.src}
+                  srcset={photo.srcset}
+                  sizes="(min-width: 1240px) 640px, (min-width: 900px) 52vw, 100vw"
+                  width={photo.width}
+                  height={photo.height}
+                  alt={label(index)}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={index === 0 ? 'high' : 'auto'}
+                  decoding="async"
+                />
+              </button>
+            ))}
+          </div>
+          {photos.length > 1 && <span class="gallery__counter" data-counter>{`1 / ${photos.length}`}</span>}
+        </div>
+
+        {photos.length > 1 && (
+          <div class="gallery__thumbs">
+            {photos.map((photo, index) => (
+              <button type="button" class="gallery__thumb" data-thumb={index} aria-label={`Show photo ${index + 1}`} aria-current={index === 0 ? 'true' : 'false'}>
+                <img src={photo.small} alt="" width={photo.width} height={photo.height} loading="lazy" decoding="async" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <dialog class="lightbox" data-lightbox aria-label={`${alt} photos`}>
+          <div class="lightbox__track" data-lightbox-track>
+            {photos.map((photo, index) => (
+              <figure class="lightbox__slide">
+                <img src={photo.large} alt={label(index)} loading="lazy" decoding="async" />
+              </figure>
+            ))}
+          </div>
+          <button type="button" class="lightbox__button lightbox__close" data-close aria-label="Close">
+            ✕
+          </button>
+          {photos.length > 1 && (
+            <>
+              <button type="button" class="lightbox__button lightbox__prev" data-step="-1" aria-label="Previous photo">
+                ‹
+              </button>
+              <button type="button" class="lightbox__button lightbox__next" data-step="1" aria-label="Next photo">
+                ›
+              </button>
+            </>
+          )}
+        </dialog>
+      </>
+    )
+  }
+</div>
+
+<script>
+  const currentIndex = (track: HTMLElement) => Math.round(track.scrollLeft / Math.max(track.clientWidth, 1));
+
+  const scrollToIndex = (track: HTMLElement, index: number, smooth = true) =>
+    track.scrollTo({ left: index * track.clientWidth, behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant' });
+
+  document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
+    const track = gallery.querySelector<HTMLElement>('[data-track]');
+    if (!track) return;
+    const slides = Array.from(gallery.querySelectorAll<HTMLButtonElement>('[data-slide]'));
+    const thumbs = Array.from(gallery.querySelectorAll<HTMLButtonElement>('[data-thumb]'));
+    const counter = gallery.querySelector<HTMLElement>('[data-counter]');
+
+    // Keep the thumbnails and "2 / 5" counter in step with the photo on screen.
+    const highlight = (index: number) => {
+      thumbs.forEach((thumb, i) => thumb.setAttribute('aria-current', String(i === index)));
+      if (counter) counter.textContent = `${index + 1} / ${slides.length}`;
+    };
+    const show = (index: number, smooth = true) => {
+      scrollToIndex(track, index, smooth);
+      highlight(index);
+    };
+    track.addEventListener('scroll', () => highlight(currentIndex(track)), { passive: true });
+    thumbs.forEach((thumb, index) => thumb.addEventListener('click', () => show(index)));
+
+    // Full-screen viewer
+    const lightbox = gallery.querySelector<HTMLDialogElement>('[data-lightbox]');
+    const lightboxTrack = lightbox?.querySelector<HTMLElement>('[data-lightbox-track]');
+    if (!lightbox || !lightboxTrack) return;
+
+    // Which photo the viewer is on (it can't be measured once the viewer has closed).
+    let viewerIndex = 0;
+    const view = (index: number, smooth = true) => {
+      viewerIndex = index;
+      scrollToIndex(lightboxTrack, index, smooth);
+    };
+    lightboxTrack.addEventListener('scroll', () => (viewerIndex = currentIndex(lightboxTrack)), { passive: true });
+
+    const step = (direction: number) => {
+      const total = slides.length;
+      view((viewerIndex + direction + total) % total);
+    };
+
+    slides.forEach((slide, index) =>
+      slide.addEventListener('click', () => {
+        lightbox.showModal();
+        view(index, false);
+      }),
+    );
+    lightbox.querySelector('[data-close]')?.addEventListener('click', () => lightbox.close());
+    lightbox
+      .querySelectorAll<HTMLButtonElement>('[data-step]')
+      .forEach((button) => button.addEventListener('click', () => step(Number(button.dataset.step))));
+    lightbox.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        step(event.key === 'ArrowRight' ? 1 : -1);
+      }
+    });
+    // Tapping the black area around a photo closes the viewer.
+    lightboxTrack.addEventListener('click', (event) => {
+      if (!(event.target instanceof HTMLImageElement)) lightbox.close();
+    });
+    // When the viewer closes, show the same photo on the page.
+    lightbox.addEventListener('close', () => show(viewerIndex, false));
+  });
+</script>

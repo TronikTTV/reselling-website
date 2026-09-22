@@ -1,0 +1,51 @@
+---
+// Opens the phone's share sheet (WhatsApp, Messages, Snapchat…) or, on
+// computers, copies the link.
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="share-actions">
+<button type="button" class="button button--ghost" data-share={title}>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+    <path d="M16 6l-4-4-4 4"></path>
+    <path d="M12 2v13"></path>
+  </svg>
+  <span data-share-label>Share</span>
+</button>
+<button type="button" class="button button--ghost" data-share={title} data-copy-link>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h4"></path></svg>
+  <span data-share-label aria-live="polite">Copy link</span>
+</button>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-share]').forEach((button) => {
+    const label = button.querySelector<HTMLElement>('[data-share-label]');
+    const original = label?.textContent ?? 'Share';
+
+    button.addEventListener('click', async () => {
+      const url = location.href.split('#')[0];
+      if (navigator.share && !button.hasAttribute('data-copy-link')) {
+        try {
+          await navigator.share({ title: button.dataset.share || document.title, url });
+          return;
+        } catch (error) {
+          // Cancellation is intentional; unsupported/blocked share sheets still copy the link.
+          if (error instanceof Error && error.name === 'AbortError') return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        if (label) label.textContent = 'Link copied!';
+        setTimeout(() => label && (label.textContent = original), 2000);
+      } catch {
+        window.prompt('Copy this link:', url);
+      }
+    });
+  });
+</script>

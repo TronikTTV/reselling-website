@@ -1,0 +1,257 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+#
+# Settings for the admin page (/admin/), powered by Sveltia CMS: https://sveltiacms.app/en/docs
+#
+# The GitHub repository, branch and site address placeholders below are filled
+# in automatically when the site is built (see src/pages/admin/config.yml.ts).
+#
+# If you add or rename a product field here, update src/content.config.ts to match.
+
+backend:
+  name: github
+  repo: __GITHUB_REPOSITORY__
+  branch: __GITHUB_BRANCH__
+  commit_messages:
+    create: 'Add {{collection}}: {{slug}}'
+    update: 'Update {{collection}}: {{slug}}'
+    delete: 'Delete {{collection}}: {{slug}}'
+    uploadMedia: 'Upload {{path}}'
+    deleteMedia: 'Delete {{path}}'
+
+site_url: __SITE_URL__
+display_url: __SITE_URL__
+
+# Product photos are stored next to each product (see the products collection).
+# This folder is only used for images uploaded outside a product.
+media_folder: src/assets/uploads
+public_folder: /src/assets/uploads
+
+# Shrink photos to at most 1600px and convert them to WebP before they are
+# saved. This works for iPhone HEIC photos too, and keeps storage small enough
+# for thousands of photos on GitHub's free plan.
+media_libraries:
+  default:
+    config:
+      slugify_filename: true
+      transformations:
+        raster_image:
+          format: webp
+          quality: 80
+          width: 1600
+          height: 1600
+
+slug:
+  encoding: ascii
+  clean_accents: true
+
+output:
+  omit_empty_optional_fields: true
+
+collections:
+  - name: products
+    label: Products
+    label_singular: Product
+    icon: sell
+    folder: src/content/products
+    path: '{{slug}}/index'
+    slug: '{{title}}-{{uuid_shorter}}'
+    media_folder: ''
+    public_folder: ''
+    create: true
+    identifier_field: title
+    summary: '{{title}}'
+    thumbnail: images
+    sortable_fields:
+      fields: [date, title, price, brand, category, status]
+      default:
+        field: date
+        direction: descending
+    view_filters:
+      - label: Available
+        field: status
+        pattern: available
+      - label: Reserved
+        field: status
+        pattern: reserved
+      - label: Sold
+        field: status
+        pattern: sold
+      - label: Featured
+        field: featured
+        pattern: true
+    view_groups:
+      - label: Category
+        field: category
+      - label: Status
+        field: status
+    fields:
+      - name: title
+        label: Product name
+        widget: string
+      - name: images
+        label: Photos
+        widget: image
+        multiple: true
+        min: 1
+        hint: The first photo is the cover. Drag to reorder. Photos are shrunk automatically.
+      - name: category
+        label: Category
+        widget: relation
+        collection: settings
+        file: categories
+        value_field: '{{categories.*.slug}}'
+        display_fields: ['{{categories.*.name}}']
+        search_fields: ['{{categories.*.name}}']
+      - name: brand
+        label: Brand
+        widget: string
+        required: false
+      - name: price
+        label: Price
+        widget: number
+        value_type: float
+        min: 0
+        required: false
+        hint: Leave empty to show "Ask for price".
+      - name: retailPrice
+        label: Retail price (RRP)
+        widget: number
+        value_type: float
+        min: 0
+        required: false
+        hint: Optional. Shown crossed out next to your price.
+      - name: status
+        label: Status
+        widget: select
+        default: available
+        options:
+          - { label: Available, value: available }
+          - { label: Reserved / on hold, value: reserved }
+          - { label: Sold, value: sold }
+      - name: size
+        label: Size
+        widget: string
+        required: false
+        hint: 'For example: M, UK 9, 7 1/4, 42mm, 100ml'
+      - name: condition
+        label: Condition
+        widget: select
+        required: false
+        options: [Brand new, New with tags, Like new, Very good, Good, Fair]
+      - name: featured
+        label: Feature on the home page
+        widget: boolean
+        default: false
+        required: false
+      - name: tags
+        label: Extra search words
+        widget: list
+        required: false
+        hint: Colour, model, material… anything people might search for.
+      - name: date
+        label: Date added
+        widget: datetime
+        default: '{{now}}'
+        hint: Newest items are shown first.
+      - name: body
+        label: Description
+        widget: markdown
+        required: false
+
+  - name: settings
+    label: Settings
+    icon: settings
+    files:
+      - name: site
+        label: Store settings
+        file: src/data/settings.json
+        fields:
+          - name: siteName
+            label: Store name
+            widget: string
+          - name: tagline
+            label: Tagline
+            widget: string
+            required: false
+            hint: A short line under the store name on the home page.
+          - name: announcement
+            label: Announcement bar
+            widget: string
+            required: false
+            hint: Optional message across the top of every page, e.g. "New drops every Friday".
+          - name: heroHeading
+            label: Home page heading
+            widget: string
+            required: false
+            hint: 'First line of the large home page heading. Default: Good finds.'
+          - name: heroAccent
+            label: Home page second line
+            widget: string
+            required: false
+            hint: 'Second line of the home page heading. Default: Your next favourite.'
+          - name: currency
+            label: Currency
+            widget: select
+            default: GBP
+            options:
+              - { label: £ Pound (GBP), value: GBP }
+              - { label: € Euro (EUR), value: EUR }
+              - { label: $ US Dollar (USD), value: USD }
+              - { label: $ Canadian Dollar (CAD), value: CAD }
+              - { label: $ Australian Dollar (AUD), value: AUD }
+          - name: hideSoldItems
+            label: Hide sold items from the shop
+            widget: boolean
+            default: false
+            required: false
+            hint: When this is off, sold items stay visible with a SOLD badge.
+          - name: contact
+            label: How people can contact you
+            widget: object
+            hint: These become the "Message me" buttons on every product. Fill in the ones you use.
+            fields:
+              - name: instagram
+                label: Instagram username
+                widget: string
+                required: false
+              - name: whatsapp
+                label: WhatsApp number
+                widget: string
+                required: false
+                hint: 'With country code, e.g. 447700900123 (a UK number starting 07 also works)'
+              - name: snapchat
+                label: Snapchat username
+                widget: string
+                required: false
+              - name: tiktok
+                label: TikTok username
+                widget: string
+                required: false
+              - name: email
+                label: Email address
+                widget: string
+                required: false
+
+      - name: categories
+        label: Categories
+        file: src/data/categories.json
+        fields:
+          - name: categories
+            label: Categories
+            label_singular: Category
+            widget: list
+            summary: '{{fields.name}}'
+            hint: Drag to change the order they appear on the site.
+            fields:
+              - name: name
+                label: Name
+                widget: string
+              - name: slug
+                label: Web address
+                widget: string
+                pattern: ['^[a-z0-9]+(-[a-z0-9]+)*$', 'Lowercase letters, numbers and dashes only, e.g. sunglasses']
+                hint: "Used in links, e.g. watches → /category/watches/. Don't change it once products use this category."
+              - name: description
+                label: Description
+                widget: text
+                required: false

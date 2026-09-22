@@ -1,0 +1,57 @@
+# Builds the site and publishes it to GitHub Pages (free) every time something
+# changes on the main branch: a product saved in /admin/, a Codex pull request
+# being merged, or a push from your PC.
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+  # Lets the admin page's "Publish changes" button trigger a deploy (only used
+  # if you turn on skip_ci in src/cms/config.yml).
+  repository_dispatch:
+    types: [sveltia-cms-publish]
+  # Adds a "Run workflow" button on the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. If several saves land quickly, only the newest waiting
+# one runs after the current deploy finishes.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Work out the site address
+        id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Pass the address to the build
+        run: |
+          echo "SITE_URL=${{ steps.pages.outputs.origin }}" >> "$GITHUB_ENV"
+          echo "BASE_PATH=${{ steps.pages.outputs.base_path }}" >> "$GITHUB_ENV"
+
+      # Installs packages, builds the site and uploads it. It also caches
+      # resized photos between runs, so only new photos get processed.
+      - name: Install, build and upload the site
+        uses: withastro/action@v6
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

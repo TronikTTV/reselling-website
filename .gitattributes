@@ -1,0 +1,9 @@
+# Same line endings everywhere (Windows, the admin page and Codex).
+* text=auto eol=lf
+
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.avif binary

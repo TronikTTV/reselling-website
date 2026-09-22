@@ -1,0 +1,15 @@
+{
+  "categories": [
+    { "name": "Watches", "slug": "watches" },
+    { "name": "Hats & Caps", "slug": "hats" },
+    { "name": "Clothing", "slug": "clothing" },
+    { "name": "Trainers & Shoes", "slug": "shoes" },
+    { "name": "Glasses & Sunglasses", "slug": "glasses" },
+    { "name": "Socks", "slug": "socks" },
+    { "name": "Electronics", "slug": "electronics" },
+    { "name": "Colognes & Fragrances", "slug": "fragrances" },
+    { "name": "Bags", "slug": "bags" },
+    { "name": "Jewellery", "slug": "jewellery" },
+    { "name": "Accessories", "slug": "accessories" }
+  ]
+}

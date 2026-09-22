@@ -1,0 +1,40 @@
+---
+import SearchIcon from './SearchIcon.astro';
+import { getCategorySummaries } from '../lib/catalog';
+import { settings } from '../lib/site';
+import { categoryUrl, shopUrl, url } from '../lib/url';
+
+interface Props {
+  currentCategory?: string;
+}
+
+const { currentCategory } = Astro.props;
+// Only categories that have something in them appear in the menu.
+const summaries = (await getCategorySummaries()).filter((summary) => summary.count > 0);
+---
+
+{settings.announcement && <div class="announcement">{settings.announcement}</div>}
+<header class="site-header">
+  <div class="container site-header__bar">
+    <a class="brand" href={url('/')}><span class="brand__mark" aria-hidden="true">{settings.siteName.charAt(0).toLowerCase()}<span>↗</span></span><span>{settings.siteName}<small>The personal collection</small></span></a>
+    <a class="header-browse" href={shopUrl()}>The collection <span aria-hidden="true">↗</span></a>
+    <form class="header-search" action={shopUrl()} method="get" role="search">
+      <label class="search-field">
+        <span class="visually-hidden">Search products</span>
+        <SearchIcon />
+        <input class="field" type="search" name="q" placeholder="Search products" autocomplete="off" enterkeyhint="search" />
+      </label>
+    </form>
+  </div>
+  <nav class="container category-nav" aria-label="Categories">
+    <a class="chip" href={shopUrl()} aria-current={currentCategory === 'all' ? 'page' : undefined}>Shop all</a>
+    {
+      summaries.map(({ category, count }) => (
+        <a class="chip" href={categoryUrl(category.slug)} aria-current={currentCategory === category.slug ? 'page' : undefined}>
+          {category.name}
+          <span class="chip__count">{count}</span>
+        </a>
+      ))
+    }
+  </nav>
+</header>

@@ -1,0 +1,265 @@
+---
+// Search box, filters, sorting and "Show more" for a list of products.
+// Used on the Shop all page and on every category page. All the products are
+// in the page; the script below just hides, shows and re-orders the cards,
+// and keeps the address bar in sync so filtered views can be shared.
+import ProductCard from './ProductCard.astro';
+import SearchIcon from './SearchIcon.astro';
+import type { CategorySummary, Product } from '../lib/catalog';
+import { pluralise } from '../lib/format';
+import { normalise } from '../lib/search';
+
+interface Props {
+  products: Product[];
+  /** Adds a category dropdown (for the Shop all page). */
+  categories?: CategorySummary[];
+}
+
+const PAGE_SIZE = 48;
+const { products, categories } = Astro.props;
+
+// One dropdown entry per brand, ignoring capitals ("nike" = "Nike"); the most used spelling is shown.
+const brandGroups = new Map<string, { count: number; spellings: Map<string, number> }>();
+for (const { data } of products) {
+  if (!data.brand) continue;
+  const key = normalise(data.brand);
+  const group = brandGroups.get(key) ?? { count: 0, spellings: new Map<string, number>() };
+  group.count += 1;
+  group.spellings.set(data.brand, (group.spellings.get(data.brand) ?? 0) + 1);
+  brandGroups.set(key, group);
+}
+const brands = [...brandGroups]
+  .map(([key, group]) => ({
+    key,
+    count: group.count,
+    label: [...group.spellings].sort((a, b) => b[1] - a[1])[0][0],
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+const categoryOptions = (categories ?? []).filter((summary) => summary.count > 0);
+const hasPrices = products.some((product) => product.data.price !== undefined);
+const hasSold = products.some((product) => product.data.status === 'sold');
+---
+
+<section class="browser" data-browser data-page-size={PAGE_SIZE}>
+  <h2 class="visually-hidden">Products</h2>
+  {
+    products.length === 0 ? (
+      <div class="empty">
+        <p>Nothing here yet. Check back soon!</p>
+      </div>
+    ) : (
+      <>
+        <form class="browser__controls" data-controls role="search">
+          <label class="browser__search search-field">
+            <span class="visually-hidden">Search</span>
+            <SearchIcon />
+            <input class="field" type="search" name="q" placeholder="Search by name, brand, size…" autocomplete="off" enterkeyhint="search" />
+          </label>
+          {categoryOptions.length > 1 && (
+            <select class="field" name="category" aria-label="Category">
+              <option value="">All categories</option>
+              {categoryOptions.map(({ category, count }) => (
+                <option value={category.slug}>{`${category.name} (${count})`}</option>
+              ))}
+            </select>
+          )}
+          {brands.length > 1 && (
+            <select class="field" name="brand" aria-label="Brand">
+              <option value="">All brands</option>
+              {brands.map((brand) => (
+                <option value={brand.key}>{`${brand.label} (${brand.count})`}</option>
+              ))}
+            </select>
+          )}
+          <select class="field" name="sort" aria-label="Sort by">
+            <option value="newest">Newest first</option>
+            {hasPrices && <option value="price-asc">Price: low to high</option>}
+            {hasPrices && <option value="price-desc">Price: high to low</option>}
+            <option value="name">Name: A to Z</option>
+          </select>
+          {hasSold && (
+            <label class="toggle">
+              <input type="checkbox" name="available" value="1" />
+              Hide sold
+            </label>
+          )}
+        </form>
+
+        <div class="browser__meta">
+          <p data-count aria-live="polite">{pluralise(products.length, 'item')}</p>
+          <button type="button" class="link-button" data-clear hidden>Clear filters</button>
+        </div>
+
+        <div class="product-grid" data-grid>
+          {products.map((product, index) => (
+            <ProductCard product={product} eager={index < 4} hidden={index >= PAGE_SIZE} />
+          ))}
+        </div>
+
+        <div class="empty" data-empty hidden>
+          <p>Nothing matches that search.</p>
+          <button type="button" class="link-button" data-clear>Clear filters</button>
+        </div>
+
+        <div class="browser__more">
+          <button type="button" class="button button--ghost" data-more hidden={products.length <= PAGE_SIZE}>
+            Show more
+          </button>
+        </div>
+      </>
+    )
+  }
+</section>
+
+<script>
+  import { normalise } from '../lib/search';
+
+  interface Item {
+    el: HTMLElement;
+    search: string;
+    category: string;
+    brand: string;
+    price: number | null;
+    status: string;
+    date: number;
+    title: string;
+  }
+
+  const FILTER_KEYS = ['q', 'category', 'brand', 'sort', 'available'];
+  const DEFAULT_SORT = 'newest';
+
+  // Items without a price always go to the end when sorting by price.
+  const byPrice = (direction: 1 | -1) => (a: Item, b: Item) => {
+    if (a.price === null || b.price === null) return (a.price === null ? 1 : 0) - (b.price === null ? 1 : 0);
+    return (a.price - b.price) * direction;
+  };
+
+  const SORTS: Record<string, (a: Item, b: Item) => number> = {
+    newest: (a, b) => b.date - a.date,
+    'price-asc': byPrice(1),
+    'price-desc': byPrice(-1),
+    name: (a, b) => a.title.localeCompare(b.title),
+  };
+
+  function setUp(root: HTMLElement) {
+    const form = root.querySelector<HTMLFormElement>('[data-controls]');
+    const grid = root.querySelector<HTMLElement>('[data-grid]');
+    if (!form || !grid) return;
+
+    const count = root.querySelector<HTMLElement>('[data-count]');
+    const empty = root.querySelector<HTMLElement>('[data-empty]');
+    const more = root.querySelector<HTMLButtonElement>('[data-more]');
+    const clearButtons = root.querySelectorAll<HTMLButtonElement>('[data-clear]');
+    const pageSize = Number(root.dataset.pageSize) || 48;
+    let limit = pageSize;
+
+    const items: Item[] = Array.from(grid.querySelectorAll<HTMLElement>('[data-product]'), (el) => ({
+      el,
+      search: el.dataset.search ?? '',
+      category: el.dataset.category ?? '',
+      brand: el.dataset.brand ?? '',
+      price: el.dataset.price ? Number(el.dataset.price) : null,
+      status: el.dataset.status ?? 'available',
+      date: Number(el.dataset.date) || 0,
+      title: el.dataset.title ?? '',
+    }));
+
+    // Restore filters from the address bar, e.g. /shop/?q=rolex&sort=price-asc
+    const initial = new URLSearchParams(location.search);
+    for (const control of Array.from(form.elements)) {
+      if (!(control instanceof HTMLInputElement || control instanceof HTMLSelectElement)) continue;
+      const value = initial.get(control.name);
+      if (value === null) continue;
+      if (control instanceof HTMLInputElement && control.type === 'checkbox') {
+        control.checked = value === control.value;
+      } else if (control instanceof HTMLSelectElement) {
+        if (Array.from(control.options).some((option) => option.value === value)) control.value = value;
+      } else {
+        control.value = value;
+      }
+    }
+
+    function update() {
+      const data = new FormData(form!);
+      const words = normalise(String(data.get('q') ?? '')).split(' ').filter(Boolean);
+      const category = String(data.get('category') ?? '');
+      const brand = String(data.get('brand') ?? '');
+      const sort = String(data.get('sort') ?? DEFAULT_SORT);
+      const hideSold = data.get('available') === '1';
+
+      const matches = items
+        .filter(
+          (item) =>
+            (!category || item.category === category) &&
+            (!brand || item.brand === brand) &&
+            (!hideSold || item.status !== 'sold') &&
+            words.every((word) => item.search.includes(word)),
+        )
+        .sort(SORTS[sort] ?? SORTS[DEFAULT_SORT]);
+
+      // Show the first `limit` matches in sorted order; everything else stays hidden.
+      const visible = new Set(matches.slice(0, limit));
+      for (const item of items) item.el.hidden = !visible.has(item);
+      const ordered = document.createDocumentFragment();
+      for (const item of matches) ordered.append(item.el);
+      grid!.append(ordered);
+
+      if (count) count.textContent = `${matches.length.toLocaleString('en-GB')} ${matches.length === 1 ? 'item' : 'items'}`;
+      if (empty) empty.hidden = matches.length > 0;
+      if (more) more.hidden = matches.length <= limit;
+      const filtered = words.length > 0 || category !== '' || brand !== '' || hideSold || sort !== DEFAULT_SORT;
+      clearButtons.forEach((button) => (button.hidden = !filtered));
+
+      // Keep the address bar in sync so a filtered view can be shared.
+      const params = new URLSearchParams(location.search);
+      FILTER_KEYS.forEach((key) => params.delete(key));
+      for (const [key, value] of data) {
+        if (typeof value === 'string' && value.trim() && !(key === 'sort' && value === DEFAULT_SORT)) params.set(key, value.trim());
+      }
+      const query = params.toString();
+      history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
+    }
+
+    let typingTimer: number | undefined;
+    form.addEventListener('input', (event) => {
+      window.clearTimeout(typingTimer);
+      const typing = event.target instanceof HTMLInputElement && event.target.type === 'search';
+      typingTimer = window.setTimeout(() => {
+        limit = pageSize;
+        update();
+      }, typing ? 150 : 0);
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      limit = pageSize;
+      update();
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    clearButtons.forEach((button) =>
+      button.addEventListener('click', () => {
+        form.reset();
+        limit = pageSize;
+        update();
+      }),
+    );
+
+    if (more) {
+      more.addEventListener('click', () => {
+        limit += pageSize;
+        update();
+      });
+      // Load the next batch automatically when the button scrolls into view.
+      new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting) && !more.hidden) more.click();
+        },
+        { rootMargin: '800px 0px' },
+      ).observe(more);
+    }
+
+    update();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-browser]').forEach(setUp);
+</script>

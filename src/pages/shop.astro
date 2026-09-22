@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProductBrowser from '../components/ProductBrowser.astro';
+import { getCategorySummaries, getListedProducts } from '../lib/catalog';
+import { pluralise } from '../lib/format';
+import { sharePreview } from '../lib/images';
+import { settings } from '../lib/site';
+
+const products = await getListedProducts();
+const summaries = await getCategorySummaries();
+const previewPhoto = products.find((product) => product.data.status !== 'sold')?.data.images[0];
+const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;
+---
+
+<BaseLayout
+  title="Shop all"
+  description={`Browse all ${pluralise(products.length, 'item')} from ${settings.siteName}.`}
+  image={preview}
+  currentCategory="all"
+>
+  <div class="container">
+    <header class="page-head">
+      <p class="eyebrow">Find your next favourite</p>
+      <h1 class="page-head__title">The collection<span class="title-dot">.</span></h1>
+      <p class="page-head__desc">All the finds, in one place. Search, filter and make it yours.</p>
+    </header>
+    <ProductBrowser products={products} categories={summaries} />
+  </div>
+</BaseLayout>
