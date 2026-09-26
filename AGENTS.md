@@ -34,7 +34,7 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 | `src/styles/global.css` | All styling. Design tokens (colours, fonts, radii, widths) are at the top in `:root`. Start here. |
 | `src/layouts/BaseLayout.astro` | `<html>`/`<head>`, meta and link-preview tags, header and footer. |
 | `src/components/` | `Header`, `Footer`, `ProductCard`, `ProductBrowser` (search/filter/sort + grid), `Gallery` (photos + full-screen viewer), `CategoryTiles`, `ShareButton`, `SearchIcon`. |
-| `src/pages/` | `index` (home), `shop` (all products), `category/[slug]`, `product/[slug]`, `404`, `admin/` (the CMS: don't touch). |
+| `src/pages/` | `index` (home), `shop` (all products), `category/[slug]`, `product/[slug]`, `manage` (owner dashboard: stock counts, "needs attention", editor shortcuts), `404`, `admin/` (the CMS: don't touch). |
 | `src/lib/` | `catalog.ts` (loading and sorting products), `site.ts` (settings and categories), `images.ts` (photo sizes), `url.ts` (links), `format.ts` (prices), `contact.ts` (message links), `search.ts`. |
 | `src/content/products/<slug>/index.md` | One folder per product: front matter + description, with its photos next to it. Written by the CMS. |
 | `src/content.config.ts` | Product schema (deliberately forgiving so one bad entry can't break the build). |
@@ -49,10 +49,14 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
    hard-coded `href="/shop/"` breaks there. Files in `public/` need `url('/file.ext')` too.
 2. **Product data belongs to the CMS.** Don't rename, remove or change the meaning of the front-matter
    fields: `title`, `images`, `category`, `brand`, `price`, `retailPrice`, `status`
-   (`available`/`reserved`/`sold`), `size`, `condition`, `featured`, `tags`, `date`, plus the Markdown
-   body (the description). A new field must be optional and added to both `src/content.config.ts` and
-   `src/cms/config.yml`. Don't edit or delete products unless asked. The `example-*` products are
-   placeholders that the owner will delete.
+   (`available`/`reserved`/`sold`), `size`, `condition`, `featured`, `draft`, `styleCode`, `colourway`,
+   `includes`, `authenticity` (a key from `AUTHENTICITY_LABELS` in `src/lib/format.ts`), `tags`, `date`,
+   plus the Markdown body (the description). A new field must be optional and added to both
+   `src/content.config.ts` and `src/cms/config.yml`. Don't edit or delete products unless asked. The
+   `example-*` products are placeholders that the owner will delete.
+   **Drafts** (`draft: true`) must never appear on the public site: get products through
+   `getAllProducts()`/`getListedProducts()` in `src/lib/catalog.ts`, which leave them out. Only the
+   dashboard uses `getDraftProducts()`, and only for a count (the dashboard page is public).
 3. **Keep the hooks the scripts rely on**, whatever the markup ends up looking like:
    - `ProductCard` outer element: `data-product`, `data-search`, `data-category`, `data-brand`,
      `data-price`, `data-status`, `data-date`, `data-title`, and the `hidden` prop.

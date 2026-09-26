@@ -29,27 +29,27 @@ Follow [Share the website with friends](docs/share-with-friends.md) to get a pub
 
 ## Adding a product (admin page)
 
-For first-time GitHub setup, follow [Connect your GitHub account](docs/github-setup.md).
+The **Owner dashboard** link in the footer opens `/manage/`: stock counts, listings that still need
+a price, size or photos, and one-tap shortcuts into the editor at `/admin/`.
 
-The **Owner tools** link in the footer opens `/manage/`, with the editor and import instructions.
-Editing uses your authorised GitHub account, not a shared website password. There is no password
-stored in the public website code. For local editing, Chrome or Edge can open the repository directly.
-The live editor needs this repository to be connected to GitHub and deployed first.
+1. On the live site, open the dashboard and press **All products** or **Add a product**.
+2. The first time on each phone or computer, press **Sign In with GitHub** and approve it. Only GitHub
+   accounts allowed to change this repository can save anything; there's no shared password to leak.
+   (This button needs the one-time setup in [Admin sign-in](docs/admin-sign-in.md). **Sign In Using
+   Access Token** also works if you ever need a backup.)
+3. Press **New Product**. Add photos (the first one is the cover; drag to reorder), the name,
+   category, price and so on, then **Save**. The live site updates in about 1–2 minutes.
 
-1. Open your site's address with `/admin/` on the end, for example
-   `https://YOUR-NAME.github.io/reselling-website/admin/`.
-2. The first time on each phone or computer, sign in:
-   1. Tap **Sign In Using Access Token**.
-   2. In another tab, create a token at
-      [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new).
-      Give it a name (e.g. "Store admin") and an expiry date. Under **Repository access** choose
-      **Only select repositories** and pick this repository. Under **Permissions** add **Contents**
-      and set it to **Read and write**.
-   3. Press **Generate token**, copy it and paste it into the admin page. That device stays signed in.
-      Treat the token like a password and never share it. When it expires, make a new one the same way.
-3. Go to **Products → New Product**. Add photos (the first one is the cover; drag to reorder), the
-   name, category, price and so on, then press **Save**.
-4. The site updates by itself in about 1–2 minutes.
+On this PC you can also edit without signing in: double-click **Start website.cmd**, open
+http://localhost:4321/admin/ in Chrome or Edge, choose **Work with Local Repository** and pick this
+folder. Those changes are saved into the folder and go live when you push them.
+
+Each product can also have:
+
+- **Draft (hide from the shop):** save a listing without it appearing anywhere until you switch it off.
+- **Where it's from:** e.g. *Bought on StockX (verified authentic)*, shown as a badge on the product page.
+- **Style code / SKU**, **Colourway** and **What's included** (box, StockX tag, receipt…). People can
+  search by style code.
 
 Tips:
 

@@ -58,9 +58,12 @@ collections:
     media_folder: ''
     public_folder: ''
     create: true
+    description: Your stock. Tap a product to edit it, or New Product to add one.
     identifier_field: title
-    summary: '{{title}}'
+    summary: "{{title}} · {{price | default('no price')}} · {{status}}{{draft | ternary(' · DRAFT', '')}}"
     thumbnail: images
+    # Adds a "View on live site" link to each product.
+    preview_path: 'product/{{dirname}}/'
     sortable_fields:
       fields: [date, title, price, brand, category, status]
       default:
@@ -78,6 +81,9 @@ collections:
         pattern: sold
       - label: Featured
         field: featured
+        pattern: true
+      - label: Drafts
+        field: draft
         pattern: true
     view_groups:
       - label: Category
@@ -128,6 +134,12 @@ collections:
           - { label: Available, value: available }
           - { label: Reserved / on hold, value: reserved }
           - { label: Sold, value: sold }
+      - name: draft
+        label: Draft (hide from the shop)
+        widget: boolean
+        default: false
+        required: false
+        hint: Switch on to save this listing without showing it anywhere on the site. Switch off when it's ready.
       - name: size
         label: Size
         widget: string
@@ -138,6 +150,39 @@ collections:
         widget: select
         required: false
         options: [Brand new, New with tags, Like new, Very good, Good, Fair]
+      - name: authenticity
+        label: Where it's from
+        widget: select
+        required: false
+        hint: Shown on the product page as a proof-of-authenticity line.
+        options:
+          - { label: 'Bought on StockX (verified authentic)', value: stockx }
+          - { label: 'Bought on GOAT (verified authentic)', value: goat }
+          - { label: Bought from an official retailer, value: retailer }
+          - { label: Bought direct from the brand, value: brand }
+      - name: styleCode
+        label: Style code / SKU
+        widget: string
+        required: false
+        hint: 'For example DD1391-100. It is on the box label and the StockX page, and people can search for it.'
+      - name: colourway
+        label: Colourway
+        widget: string
+        required: false
+        hint: 'For example White/Black'
+      - name: includes
+        label: What's included
+        widget: select
+        multiple: true
+        required: false
+        options:
+          - Original box
+          - Replacement box
+          - StockX tag
+          - Receipt / proof of purchase
+          - Dust bag
+          - Extra laces
+          - All original accessories
       - name: featured
         label: Feature on the home page
         widget: boolean

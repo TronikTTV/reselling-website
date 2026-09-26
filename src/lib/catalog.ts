@@ -28,8 +28,17 @@ const cached = <T>(load: () => Promise<T>) => {
   return () => (import.meta.env.DEV ? load() : (result ??= load()));
 };
 
-/** Every product, newest first, including sold ones (their pages stay up so shared links keep working). */
-export const getAllProducts = cached(async () => (await getCollection('products')).sort(newestFirst));
+/** Every product in the folder, drafts included, newest first. Only the owner dashboard should need this. */
+export const getEveryProduct = cached(async () => (await getCollection('products')).sort(newestFirst));
+
+/**
+ * Every published product, newest first, including sold ones (their pages stay up so shared links
+ * keep working). Drafts are left out, so they get no page and appear nowhere on the site.
+ */
+export const getAllProducts = cached(async () => (await getEveryProduct()).filter((product) => !product.data.draft));
+
+/** Products saved as drafts in the admin page. */
+export const getDraftProducts = cached(async () => (await getEveryProduct()).filter((product) => product.data.draft));
 
 /** Products that appear in listings: everything, minus sold items when "Hide sold items" is switched on. */
 export const getListedProducts = cached(async () => {

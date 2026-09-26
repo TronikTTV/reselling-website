@@ -31,6 +31,12 @@ const flag = z.preprocess(
   z.boolean(),
 );
 
+// A list of short texts. Also accepts "a, b, c" or a single value.
+const textList = z.preprocess((value) => {
+  const list = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  return list.map((item) => (isBlank(item) ? '' : String(item).trim())).filter(Boolean);
+}, z.array(z.string()));
+
 const products = defineCollection({
   loader: glob({ pattern: '**/index.md', base: './src/content/products' }),
   schema: ({ image }) =>
@@ -51,10 +57,15 @@ const products = defineCollection({
       size: optionalText,
       condition: optionalText,
       featured: flag,
-      tags: z.preprocess((value) => {
-        const list = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
-        return list.map((tag) => (isBlank(tag) ? '' : String(tag).trim())).filter(Boolean);
-      }, z.array(z.string())),
+      // Drafts are kept off the site entirely (no page, not in listings) until switched off.
+      draft: flag,
+      // Sneaker / StockX details, all optional.
+      styleCode: optionalText,
+      colourway: optionalText,
+      includes: textList,
+      // Where it was bought: a key from AUTHENTICITY_LABELS in src/lib/format.ts, or free text.
+      authenticity: optionalText,
+      tags: textList,
       date: z.preprocess((value) => {
         if (isBlank(value)) return undefined;
         const date = value instanceof Date ? value : new Date(String(value));

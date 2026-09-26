@@ -1,4 +1,4 @@
-# Share 1:1 Shop with friends
+# Share Central Supply with friends
 
 `http://localhost:4321/` only opens the website on your own PC. To send a link that works on friends'
 phones, publish the website to a host. Once published, your PC can be switched off.
@@ -13,8 +13,8 @@ must be committed and pushed before a host connected to GitHub can build them.
 2. Sign in to [Cloudflare](https://dash.cloudflare.com/) and open **Workers & Pages**.
 3. Choose **Create application → Pages → Import an existing Git repository**. Connect GitHub and
    select `TronikTTV/reselling-website`.
-4. Choose a project name such as `one-to-one-shop` if available. The store will still display
-   **1:1 Shop**; website addresses cannot contain the colon.
+4. Choose a project name such as `central-supply` if available. It becomes the address, for
+   example `central-supply.pages.dev`.
 5. Set the production branch to `main`, build command to `npm run build`, and output directory to
    `dist`. Keep the repository root as the build root. This project is already static; it needs no
    server adapter.

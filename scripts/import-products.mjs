@@ -10,6 +10,7 @@
 //    symbol at the end of the name (£25) is optional.
 //
 // 2. Run:   npm run import             (or: npm run import -- --dry-run   to preview)
+//    Add --draft to bring everything in as drafts, hidden from the shop until you switch Draft off.
 //
 // Photos are shrunk to 1600px WebP, the same as the admin page does, and the originals
 // are moved to import/_done/. Then check the site with `npm run dev` and push the changes.
@@ -29,6 +30,7 @@ const PHOTO_TYPES = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', 
 const IGNORED = new Set(['_done', '_web-staging', 'web-import-report.json', 'urls.txt', 'products.json', 'readme.txt', 'thumbs.db', 'desktop.ini', '.ds_store']);
 const MAX_SIZE = 1600;
 const dryRun = process.argv.includes('--dry-run');
+const asDrafts = process.argv.includes('--draft');
 
 const slugify = (value) =>
   value
@@ -38,6 +40,22 @@ const slugify = (value) =>
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+// Sharp's cache keeps photos open on Windows, which stops them being moved to import/_done afterwards.
+sharp.cache(false);
+
+/** Moves a file or folder, retrying briefly while Windows (antivirus, indexing) still has it open. */
+async function moveWithRetry(from, to, attempts = 5) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await rename(from, to);
+      return true;
+    } catch (error) {
+      if (attempt >= attempts || !['EPERM', 'EBUSY', 'EACCES'].includes(error.code)) return false;
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+    }
+  }
+}
 
 const tidy = (value) => value.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
 const naturalOrder = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -113,6 +131,7 @@ async function main() {
   }
 
   const batch = new Date().toISOString().replace(/[:.]/g, '-');
+  const notMoved = [];
   const now = Date.now();
   let imported = 0;
   let photoCount = 0;
@@ -157,6 +176,7 @@ async function main() {
       `category: ${product.category}`,
       ...(product.price !== undefined ? [`price: ${product.price}`] : []),
       'status: available',
+      ...(asDrafts ? ['draft: true'] : []),
       `date: ${new Date(now - index * 1000).toISOString()}`,
       '---',
       '',
@@ -166,7 +186,9 @@ async function main() {
     // Move the originals out of the way so they aren't imported twice.
     const doneFolder = path.join(DONE, batch, path.relative(INBOX, path.dirname(product.source)));
     await mkdir(doneFolder, { recursive: true });
-    await rename(product.source, path.join(doneFolder, path.basename(product.source)));
+    if (!(await moveWithRetry(product.source, path.join(doneFolder, path.basename(product.source))))) {
+      notMoved.push(product.label);
+    }
 
     imported += 1;
     photoCount += images.length;
@@ -176,13 +198,18 @@ async function main() {
   if (!dryRun && newCategories.length > 0) {
     await writeFile(CATEGORIES_FILE, `${JSON.stringify({ ...categoryData, categories }, null, 2)}\n`);
   }
+  if (notMoved.length > 0) {
+    console.warn(
+      `\n! Imported, but couldn't move the originals of: ${notMoved.join(', ')}.\n  Move or delete them from the import folder yourself so they aren't imported twice.`,
+    );
+  }
   if (newCategories.length > 0) {
     console.log(`\n${dryRun ? 'Would add' : 'Added'} new categor${newCategories.length === 1 ? 'y' : 'ies'}: ${newCategories.join(', ')}`);
   }
   console.log(
     dryRun
       ? `\nDry run: ${products.length} product(s) found. Nothing was changed.`
-      : `\nImported ${imported} product(s) with ${photoCount} photo(s). Originals moved to import/_done/.\nNext: check them with "npm run dev", then commit and push.`,
+      : `\nImported ${imported} product(s) with ${photoCount} photo(s). Originals moved to import/_done/.${asDrafts ? '\nThey are drafts: finish them in the editor, then switch Draft off.' : ''}\nNext: check them with "npm run dev", then commit and push.`,
   );
 }
 

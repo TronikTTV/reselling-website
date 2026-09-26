@@ -6,7 +6,7 @@ import ProductCard from '../../components/ProductCard.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import { categoryOf, getAllProducts, getListedProducts, type Product } from '../../lib/catalog';
 import { contactLinks } from '../../lib/contact';
-import { formatPrice, STATUS_LABELS } from '../../lib/format';
+import { authenticityLabel, formatPrice, STATUS_LABELS } from '../../lib/format';
 import { sharePreview } from '../../lib/images';
 import { normalise } from '../../lib/search';
 import { categoryUrl, shopUrl, url } from '../../lib/url';
@@ -22,7 +22,9 @@ interface Props {
 }
 
 const { product } = Astro.props;
-const { title, brand, price, retailPrice, status, size, condition, tags, images } = product.data;
+const { title, brand, price, retailPrice, status, size, condition, tags, images, styleCode, colourway, includes, authenticity } =
+  product.data;
+const authenticityText = authenticityLabel(authenticity);
 const { Content } = await render(product);
 const hasDescription = Boolean(product.body?.trim());
 const category = categoryOf(product);
@@ -32,7 +34,7 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
 const pageUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const contacts = status === 'sold' ? [] : contactLinks({ title, url: pageUrl });
 const preview = images[0] ? await sharePreview(images[0]) : undefined;
-const description = [priceText, brand, size && `Size ${size}`, condition, status !== 'available' && STATUS_LABELS[status]]
+const description = [priceText, brand, size && `Size ${size}`, condition, styleCode, status !== 'available' && STATUS_LABELS[status]]
   .filter(Boolean)
   .join(' · ');
 
@@ -60,6 +62,17 @@ const related = (await getListedProducts())
           {showRetail && <s class="rrp">{`RRP ${formatPrice(retailPrice)}`}</s>}
         </p>
         <p class:list={['status', `status--${status}`]}>{STATUS_LABELS[status]}</p>
+        {
+          authenticityText && (
+            <p class="authentic">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              <span>{authenticityText}</span>
+            </p>
+          )
+        }
 
         <dl class="details">
           {
@@ -85,6 +98,30 @@ const related = (await getListedProducts())
                 <dd>
                   <a href={shopUrl({ brand: normalise(brand) })}>{brand}</a>
                 </dd>
+              </>
+            )
+          }
+          {
+            styleCode && (
+              <>
+                <dt>Style code</dt>
+                <dd>{styleCode}</dd>
+              </>
+            )
+          }
+          {
+            colourway && (
+              <>
+                <dt>Colourway</dt>
+                <dd>{colourway}</dd>
+              </>
+            )
+          }
+          {
+            includes.length > 0 && (
+              <>
+                <dt>Included</dt>
+                <dd>{includes.join(', ')}</dd>
               </>
             )
           }

@@ -1,5 +1,26 @@
 # Storefront refresh
 
+## Owner dashboard, drafts and StockX details — 26 September 2026
+
+- Store renamed to **Central Supply**. The Instagram contact `Centralsupply.uk` adds **Message on
+  Instagram** (`https://ig.me/m/Centralsupply.uk`) to product pages and the footer.
+- New optional product fields: `draft`, `styleCode`, `colourway`, `includes`, `authenticity`. Checked
+  with temporary test products, removed afterwards: the draft had no product page (404), was absent
+  from the shop and only counted (not named) on the dashboard. The StockX listing showed the
+  authenticity badge and new details, and searching its style code `DD1391-100` found it.
+- `/manage/` is now an owner dashboard: stock counts and value, a "Needs attention" list (missing
+  price, size or photos) with editor links in Sveltia's `#/collections/products/entries/<folder>/index`
+  format, and a per-category table. Checked at 375px (no horizontal overflow) and 1440px.
+- `npm run import -- --draft` imports as drafts. Fixed a Windows file lock (sharp's cache) that stopped
+  originals moving to `import/_done` and aborted the batch; moves now retry, then warn instead of aborting.
+- The admin configuration falls back to the git remote, so the local editor targets
+  `TronikTTV/reselling-website` without environment variables.
+- The CMS configuration validated against Sveltia's JSON schema and loaded without warnings.
+  **Sign In with GitHub has not been tested yet:** it needs the one-time setup in
+  [admin-sign-in.md](admin-sign-in.md).
+- `astro check`: 0 errors. Normal and `/test-repo` builds passed, importer tests 11/11, and all 27 pages
+  plus the dashboard, shop and home images returned HTTP 200 on the dev server.
+
 ## Local controls — 26 September 2026
 
 - Added Start website.cmd, Restart website.cmd and Stop website.cmd, using the shared PowerShell

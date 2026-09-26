@@ -1,67 +1,200 @@
 ---
+// Owner dashboard: a quick look at the stock, what needs finishing, and shortcuts into the editor.
+// This page is public like the rest of the site (static hosting can't hide pages), so it only shows
+// what the shop already shows. Draft names stay out of it; only their number is shown.
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { url } from '../lib/url';
+import { categoryOf, getAllProducts, getDraftProducts, type Product } from '../lib/catalog';
+import { formatPrice, pluralise, STATUS_LABELS } from '../lib/format';
+import { productPhoto } from '../lib/images';
+import { categories, OTHER_CATEGORY } from '../lib/site';
+import { categoryUrl, productUrl, url } from '../lib/url';
+
+const products = await getAllProducts();
+const drafts = await getDraftProducts();
+const count = (status: string) => products.filter((product) => product.data.status === status).length;
+const unsold = products.filter((product) => product.data.status !== 'sold');
+const priced = unsold.filter((product) => product.data.price !== undefined);
+const stockValue = priced.reduce((total, product) => total + (product.data.price ?? 0), 0);
+
+// The editor opens a product from its file path inside the products folder, e.g. "nike-dunk-1a2b3c4d/index".
+const editor = (route = '') => `${url('/admin/')}#/${route}`;
+const entryPath = (product: Product) =>
+  (product.filePath ?? '').replace(/\\/g, '/').replace(/^.*?src\/content\/products\//, '').replace(/\.md$/, '') ||
+  `${product.id}/index`;
+const editUrl = (product: Product) => editor(`collections/products/entries/${entryPath(product)}`);
+
+// Unsold listings that are missing something buyers look for.
+const needsAttention = unsold
+  .map((product) => ({
+    product,
+    missing: [
+      product.data.price === undefined && 'No price',
+      !product.data.size && 'No size',
+      product.data.images.length === 0 && 'No photos',
+    ].filter((item): item is string => Boolean(item)),
+  }))
+  .filter(({ missing }) => missing.length > 0);
+const ATTENTION_LIMIT = 40;
+const attentionRows = await Promise.all(
+  needsAttention.slice(0, ATTENTION_LIMIT).map(async (row) => ({
+    ...row,
+    photo: row.product.data.images[0] ? await productPhoto(row.product.data.images[0]) : undefined,
+  })),
+);
+
+// Stock per category, in the order set in the admin page.
+const allCategories = categories.some((category) => category.slug === OTHER_CATEGORY.slug)
+  ? categories
+  : [...categories, OTHER_CATEGORY];
+const categoryRows = allCategories
+  .map((category) => {
+    const inCategory = products.filter((product) => categoryOf(product).slug === category.slug);
+    const statusCount = (status: string) => inCategory.filter((product) => product.data.status === status).length;
+    return { category, total: inCategory.length, available: statusCount('available'), reserved: statusCount('reserved'), sold: statusCount('sold') };
+  })
+  .filter((row) => row.total > 0);
+
+const stats = [
+  { label: STATUS_LABELS.available, value: count('available').toLocaleString('en-GB') },
+  { label: STATUS_LABELS.reserved, value: count('reserved').toLocaleString('en-GB') },
+  { label: STATUS_LABELS.sold, value: count('sold').toLocaleString('en-GB') },
+  { label: 'Drafts', value: drafts.length.toLocaleString('en-GB') },
+  { label: 'Stock value', value: formatPrice(stockValue) ?? '0', note: `${pluralise(priced.length, 'priced item')}, unsold` },
+  { label: 'Need attention', value: needsAttention.length.toLocaleString('en-GB') },
+];
 ---
 
-<BaseLayout title="Owner tools" noindex>
+<BaseLayout title="Owner dashboard" noindex>
   <div class="container">
     <header class="page-head">
       <p class="eyebrow">Behind the collection</p>
-      <h1 class="page-head__title">Your store, your way<span class="title-dot">.</span></h1>
-      <p class="page-head__desc">Manage your listings, update your prices and keep the collection fresh.</p>
+      <h1 class="page-head__title">Owner dashboard<span class="title-dot">.</span></h1>
+      <p class="page-head__desc">Your stock at a glance, with shortcuts into the editor. Changes you save there go live in a couple of minutes.</p>
     </header>
-    <div class="manage-grid">
-      <section class="manage-panel">
-        <p class="eyebrow">01 / The editor</p>
-        <h2>Make it yours.</h2>
-        <p>Open the editor to add or remove listings, upload and reorder photos, change prices, sizes and availability, or pick your featured items.</p>
-        <a class="button" href={url('/admin/')}>Open store editor <span aria-hidden="true">↗</span></a>
+
+    <nav class="dash-actions" aria-label="Editor shortcuts">
+      <a class="button" href={editor('collections/products/new')}>Add a product <span aria-hidden="true">+</span></a>
+      <a class="button button--ghost" href={editor('collections/products')}>All products</a>
+      <a class="button button--ghost" href={editor('collections/settings/entries/site')}>Store settings</a>
+      <a class="button button--ghost" href={editor('collections/settings/entries/categories')}>Categories</a>
+      <a class="button button--ghost" href={url('/')}>View the shop</a>
+    </nav>
+
+    <section class="dash-section" aria-labelledby="stock-heading">
+      <h2 class="dash-heading" id="stock-heading">Stock</h2>
+      <ul class="dash-stats">
+        {
+          stats.map((stat) => (
+            <li class="stat">
+              <span class="stat__value">{stat.value}</span>
+              <span class="stat__label">{stat.label}</span>
+              {stat.note && <span class="stat__note">{stat.note}</span>}
+            </li>
+          ))
+        }
+      </ul>
+      {
+        drafts.length > 0 && (
+          <p class="dash-note">
+            {`${pluralise(drafts.length, 'draft')} ${drafts.length === 1 ? 'is' : 'are'} hidden from the shop. To finish ${drafts.length === 1 ? 'it' : 'them'}, open `}
+            <a href={editor('collections/products')}>All products</a>
+            {' and choose Drafts in the filter menu.'}
+          </p>
+        )
+      }
+    </section>
+
+    <section class="dash-section" aria-labelledby="attention-heading">
+      <h2 class="dash-heading" id="attention-heading">Needs attention</h2>
+      {
+        needsAttention.length === 0 ? (
+          <p class="dash-note">Every unsold listing has a price, a size and photos. Nice.</p>
+        ) : (
+          <>
+            <p class="dash-note">Unsold listings missing a price, size or photos. Buyers skip these, so they're worth finishing first.</p>
+            <ul class="attention-list">
+              {attentionRows.map(({ product, missing, photo }) => (
+                <li class="attention-item">
+                  <div class="attention-item__thumb">
+                    {photo && <img src={photo.small} alt="" width={photo.width} height={photo.height} loading="lazy" decoding="async" />}
+                  </div>
+                  <div class="attention-item__text">
+                    <p class="attention-item__title">{product.data.title}</p>
+                    <p class="attention-item__meta">
+                      {missing.map((item) => (
+                        <span class="missing-chip">{item}</span>
+                      ))}
+                      <span>{categoryOf(product).name}</span>
+                    </p>
+                  </div>
+                  <div class="attention-item__actions">
+                    <a class="button" href={editUrl(product)}>Edit</a>
+                    <a class="button button--ghost" href={productUrl(product.id)}>View</a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {needsAttention.length > ATTENTION_LIMIT && (
+              <p class="dash-note">{`And ${pluralise(needsAttention.length - ATTENTION_LIMIT, 'more listing')}. Sort All products by price in the editor to find the rest.`}</p>
+            )}
+          </>
+        )
+      }
+    </section>
+
+    {
+      categoryRows.length > 0 && (
+        <section class="dash-section" aria-labelledby="category-heading">
+          <h2 class="dash-heading" id="category-heading">By category</h2>
+          <div class="dash-table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th scope="col">Category</th>
+                  <th scope="col">Available</th>
+                  <th scope="col">Reserved</th>
+                  <th scope="col">Sold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoryRows.map((row) => (
+                  <tr>
+                    <th scope="row">
+                      <a href={categoryUrl(row.category.slug)}>{row.category.name}</a>
+                    </th>
+                    <td>{row.available}</td>
+                    <td>{row.reserved}</td>
+                    <td>{row.sold}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )
+    }
+
+    <section class="dash-section manage-grid" aria-label="Help">
+      <div class="manage-panel">
+        <p class="eyebrow">Signing in</p>
+        <h2>Only you can make changes.</h2>
+        <p>Press <strong>All products</strong> or <strong>Add a product</strong> above, then <strong>Sign In with GitHub</strong> and approve it. Only GitHub accounts allowed to change this store's repository can save anything, so there's no shared password to leak.</p>
         <details>
-          <summary>Signing in for the first time</summary>
-          <p>On the live site, sign in with a GitHub access token for this store’s repository. Only your authorised GitHub account can save changes. A shared site password cannot authorise those edits.</p>
-          <p>On this PC, open the editor in Chrome or Edge, choose <strong>Work with Local Repository</strong> and select the website folder. Local changes need to be committed and pushed to go live.</p>
-          <p><a href="https://sveltiacms.app/en/docs/backends/github" target="_blank" rel="noopener">GitHub sign-in instructions ↗</a></p>
+          <summary>Working on this PC without signing in</summary>
+          <p>Double-click <strong>Start website.cmd</strong>, open the editor in Chrome or Edge, choose <strong>Work with Local Repository</strong> and pick the website folder. Changes are saved into the folder; push them with GitHub Desktop to put them live.</p>
         </details>
         <details>
-          <summary>Change your store details</summary>
-          <p>In the editor, go to <strong>Settings → Store settings</strong> to change the store name, homepage heading, tagline, announcement, currency and contact links. Add at least one contact method so friends can message you about an item.</p>
-          <p>Go to <strong>Settings → Categories</strong> to add categories and arrange their order.</p>
+          <summary>Drafts, sold items and the home page</summary>
+          <p>Switch on <strong>Draft</strong> to save a listing without it showing anywhere. Set <strong>Status</strong> to Reserved or Sold as things go. Sold items keep their page so shared links still work, or hide them all in <strong>Store settings</strong>. <strong>Feature on the home page</strong> puts a listing in the spotlight.</p>
         </details>
-      </section>
-      <section class="manage-panel">
-        <p class="eyebrow">02 / Bulk additions</p>
-        <h2>A whole collection at once.</h2>
-        <p>The bulk import tools run on your PC. Preview a batch before adding it, then check the listings in the editor before publishing.</p>
-        <details open>
-          <summary>From Husky Yupoo or Luxury Brand</summary>
-          <ol>
-            <li>On this PC, open the website folder and double-click <strong>Prepare supplier import.cmd</strong>.</li>
-            <li>Paste the supplier’s album, category or website link. Choose a batch size and up to 10 photos per listing.</li>
-            <li>Open <strong>review.html</strong> in the new batch folder inside <strong>import</strong>. Edit titles and prices, check photos and untick unwanted listings.</li>
-            <li>Download the selected listings, save them as <code>import/reviewed-products.json</code>, then run <code>npm run import:web -- --file import/reviewed-products.json --keep-prices</code>.</li>
-          </ol>
-          <p>Supplier prices stay blank until you set your selling prices. Review variants and availability: an album can include several items. Imports remain local until you publish.</p>
-        </details>
-        <details>
-          <summary>From product websites</summary>
-          <ol>
-            <li>Save product-page links, one per line, in <code>import/urls.txt</code>.</li>
-            <li>Preview with <code>npm run import:web -- --file import/urls.txt --category clothing --dry-run</code>. Replace <code>clothing</code> with your category.</li>
-            <li>Remove <code>--dry-run</code> to download the photos and create the listings. Prices stay blank unless you add <code>--keep-prices</code>.</li>
-          </ol>
-          <p>Supports public pages with standard product data (JSON-LD), or a prepared JSON product export. Existing imports are skipped. Pages without supported product data are reported for review.</p>
-        </details>
-        <details>
-          <summary>Yupoo albums</summary>
-          <p>Husky’s public catalogue is supported, including category pagination and a limited selection of photos per album. Information albums are filtered out where identifiable, and every batch has a review page.</p>
-          <p>Other Yupoo sellers may use different layouts or access controls and need separate testing.</p>
-        </details>
-        <details>
-          <summary>From photos on your PC</summary>
-          <p>Put each item’s photos in <code>import/category/Product name £25/</code>. Preview with <code>npm run import -- --dry-run</code>, then run <code>npm run import</code> to add them.</p>
-          <p>The folder name becomes the title and optional price. Photos are compressed automatically.</p>
-        </details>
-      </section>
-    </div>
+      </div>
+      <div class="manage-panel">
+        <p class="eyebrow">Adding lots at once</p>
+        <h2>Straight from your photos.</h2>
+        <p>On this PC, put each item's photos in a folder named after it inside <code>import\category\</code>, for example <code>import\shoes\Nike Dunk Low Panda £120\</code>. Then run:</p>
+        <p><code>npm run import -- --draft</code></p>
+        <p>Everything comes in as drafts with compressed photos, so you can add sizes, style codes and prices in the editor before switching Draft off. Full steps are in <code>import\README.txt</code>.</p>
+      </div>
+    </section>
   </div>
 </BaseLayout>

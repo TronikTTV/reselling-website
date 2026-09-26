@@ -14,6 +14,7 @@ BULK IMPORT: add lots of products at once from photos on this PC
 
 2. In the project folder, run:   npm run import
    (To preview without changing anything:   npm run import -- --dry-run)
+   (To bring them in as drafts, hidden until you've added sizes and prices:   npm run import -- --draft)
 
 3. Check the result with   npm run dev   and then push the changes to GitHub.
    Add brands, sizes and descriptions later on the admin page.
