@@ -33,7 +33,7 @@ const previewImage = image ? new URL(image, siteRoot).href : undefined;
     {description && <meta name="description" content={description} />}
     <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
     <link rel="canonical" href={canonical} />
-    <meta name="theme-color" content="#f7f7f2" />
+    <meta name="theme-color" content="#030405" />
 
     <!-- Link previews when the site is shared in WhatsApp, iMessage, Instagram, Discord… -->
     <meta property="og:type" content="website" />
@@ -44,7 +44,8 @@ const previewImage = image ? new URL(image, siteRoot).href : undefined;
     {previewImage && <meta property="og:image" content={previewImage} />}
     <meta name="twitter:card" content={previewImage ? 'summary_large_image' : 'summary'} />
   </head>
-  <body>
+  <body style={`--star-map: url("${url('/stars.svg')}")`}>
+    <div class="space-backdrop" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
     <Header currentCategory={currentCategory} />
     <main id="main">

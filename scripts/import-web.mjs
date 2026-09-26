@@ -28,14 +28,14 @@ function publicAddress(address) {
   return a > 0 && a < 224 && a !== 10 && a !== 127 && !(a === 169 && b === 254) && !(a === 172 && b >= 16 && b <= 31) && !(a === 192 && (b === 168 || b === 0)) && !(a === 100 && b >= 64 && b <= 127) && !(a === 198 && (b === 18 || b === 19));
 }
 
-export async function download(address, image = false) {
+export async function download(address, image = false, { referer } = {}) {
   let current = sourceUrl(address);
   for (let hop = 0; hop < 5; hop++) {
     const addresses = await lookup(new URL(current).hostname, { all: true });
     if (!addresses.length || addresses.some(({ address }) => !publicAddress(address))) throw new Error('Source resolves to a non-public address.');
     const response = await fetch(current, {
       redirect: 'manual', signal: AbortSignal.timeout(25000),
-      headers: { 'User-Agent': 'CatalogueImporter/1.0', Accept: image ? 'image/*' : 'text/html,application/xhtml+xml' },
+      headers: { 'User-Agent': 'CatalogueImporter/1.0', Accept: image ? 'image/*' : 'text/html,application/xhtml+xml', ...(image && referer ? { Referer: `${new URL(sourceUrl(referer)).origin}/` } : {}) },
     });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       await response.body?.cancel();
@@ -87,6 +87,7 @@ export function extractProducts(html, pageUrl) {
 
 export function normaliseProduct(raw, options) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Each product must be an object.');
+  if (raw.review && raw.review.approved !== true) throw new Error('Review this supplier batch in review.html and download the selected listings first.');
   const title = scalar(raw.title);
   if (!title) throw new Error('Missing product title.');
   const source = sourceUrl(raw.source);
@@ -126,7 +127,7 @@ export async function saveProduct(product, { root = ROOT, fetchImage = download 
     const images = [];
     for (const address of product.images) {
       const file = `photo-${images.length + 1}.webp`;
-      await sharp(await fetchImage(address, true), { limitInputPixels: 40000000 })
+      await sharp(await fetchImage(address, true, { referer: product.source }), { limitInputPixels: 40000000 })
         .rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 78 }).toFile(path.join(staging, file));
       images.push(file);

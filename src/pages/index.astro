@@ -22,25 +22,26 @@ const spotlightPhoto = previewPhoto ? await productPhoto(previewPhoto) : undefin
 ---
 
 <BaseLayout image={preview}>
-  <section class="hero container">
+  <div class="container hero-wrap"><section class="hero">
+    <div class="hero__orbit" aria-hidden="true"><span></span></div>
     <div class="hero__copy">
-      <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> The everyday rotation</p>
+      <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> A universe of good finds</p>
       <h1 class="hero__title">{settings.heroHeading}<br /><span>{settings.heroAccent}</span></h1>
       {settings.tagline && <p class="hero__tagline">{settings.tagline}</p>}
         <div class="hero__actions">
-          <a class="button" href={shopUrl()}>Explore the collection <span aria-hidden="true">↗</span></a>
+          <a class="button" href={shopUrl()}>Shop the collection <span aria-hidden="true">↗</span></a>
           {summaries.length > 0 && <a class="text-link" href="#categories">Find your category <span aria-hidden="true">↓</span></a>}
         </div>
-        <p class="hero__note">Find something you like? Send me a message. Simple.</p>
+        <p class="hero__note">Good taste. Great finds. Just a message away.</p>
     </div>
     {spotlight && spotlightPhoto && (
       <a class="hero__spotlight" href={productUrl(spotlight.id)} aria-label={`Take a closer look: ${spotlight.data.title}`}>
-        <div class="hero__spotlight-top"><span>The spotlight</span><span aria-hidden="true">01 /</span></div>
+        <div class="hero__spotlight-top"><span>Selected for you</span><span aria-hidden="true">↗</span></div>
         <div class="hero__image"><img src={spotlightPhoto.src} srcset={spotlightPhoto.srcset} sizes="(min-width: 900px) 420px, 85vw" width={spotlightPhoto.width} height={spotlightPhoto.height} alt={spotlight.data.title} fetchpriority="high" /></div>
-        <div class="hero__caption"><div><span class="eyebrow">Take a closer look</span><h2>{spotlight.data.title}</h2><span>{formatPrice(spotlight.data.price) ?? 'Ask for price'}</span></div><span class="circle-arrow" aria-hidden="true">↗</span></div>
+        <div class="hero__caption"><div><span class="eyebrow">The spotlight</span><h2>{spotlight.data.title}</h2><span>{formatPrice(spotlight.data.price) ?? 'Ask for price'}</span></div><span class="circle-arrow" aria-hidden="true">↗</span></div>
       </a>
     )}
-  </section>
+  </section></div>
   <div class="container"><div class="browse-strip"><span><span class="live-dot" aria-hidden="true"></span>{pluralise(inStock.length, 'find')} to explore</span><span>Pick your favourites. Message me for the details.</span><a href={shopUrl()}>Have a look <span aria-hidden="true">↗</span></a></div></div>
 
   {

@@ -10,10 +10,12 @@
     "check": "astro check",
     "import": "node scripts/import-products.mjs",
     "import:web": "node scripts/import-web.mjs",
-    "test:import": "node --test scripts/import-web.test.mjs"
+    "import:catalog": "node scripts/collect-supplier.mjs",
+    "test:import": "node --test scripts/import-web.test.mjs scripts/supplier-parsers.test.mjs"
   },
   "dependencies": {
     "astro": "^7.3.3",
+    "parse5": "^8.0.1",
     "sharp": "^0.35.4"
   },
   "devDependencies": {

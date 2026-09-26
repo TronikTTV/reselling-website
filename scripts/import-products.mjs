@@ -71,6 +71,8 @@ async function main() {
 
   for (const entry of (await readdir(INBOX, { withFileTypes: true })).sort((a, b) => naturalOrder(a.name, b.name))) {
     if (isIgnored(entry.name)) continue;
+    // Review batches contain their own metadata; they are not product/category photo folders.
+    if (entry.isDirectory() && existsSync(path.join(INBOX, entry.name, 'progress.json'))) continue;
     if (!entry.isDirectory()) {
       console.warn(`! Skipped "${entry.name}": put photos inside a category folder, e.g. import/watches/`);
       continue;

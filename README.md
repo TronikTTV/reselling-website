@@ -3,7 +3,7 @@
 A free product catalogue that stays online around the clock. Friends open one link, browse by
 category, search, filter by brand, sort by price, and message you about anything they like.
 
-- **Costs nothing.** GitHub Pages hosts it for free, and it stays up when your PC is off.
+- **Static hosting.** Once published, it stays up when your PC is off. See [sharing the website](docs/share-with-friends.md) for hosting setup.
 - **Add products from your phone or PC** on the admin page. Photos are shrunk automatically.
 - **Plenty of room.** Roughly 3,000–4,000 photos (about 800–1,000 products with 4 photos each) fit
   within GitHub's free limits.
@@ -12,7 +12,24 @@ category, search, filter by brand, sort by price, and message you about anything
 
 ---
 
+## Start, restart and stop the local website
+
+In this folder, double-click one of these Windows command files:
+
+- **Start website.cmd** starts the preview in the background and opens your browser. Running it
+  again reuses the same preview.
+- **Restart website.cmd** stops this project's preview, starts it fresh, and opens your browser.
+  It also works when the preview is already off.
+- **Stop website.cmd** turns the preview off. It is safe to run when already stopped.
+
+Closing just the browser tab does not stop the preview. These controls only affect this project's
+local preview; they do not publish changes. The older Open/Close files still work too.
+The localhost address works on this PC. Friends use the deployed website's address on their phones.
+Follow [Share the website with friends](docs/share-with-friends.md) to get a public link.
+
 ## Adding a product (admin page)
+
+For first-time GitHub setup, follow [Connect your GitHub account](docs/github-setup.md).
 
 The **Owner tools** link in the footer opens `/manage/`, with the editor and import instructions.
 Editing uses your authorised GitHub account, not a shared website password. There is no password
@@ -65,6 +82,11 @@ git push
 
 ## Batch import from websites (on this PC)
 
+**For your Husky Yupoo and Luxury Brand suppliers:** double-click **Prepare supplier import.cmd**
+in this folder. It prepares an editable review page with compressed photo previews. Follow
+[Supplier imports](docs/supplier-imports.md) for selecting listings, setting prices and resuming
+larger batches. No stock is added until you import the reviewed export.
+
 Use public product pages whose photos you have permission to reuse. Save one product-page URL
 per line in `import/urls.txt`. Choose an existing category web address from Settings → Categories:
 
@@ -75,10 +97,11 @@ npm run import:web -- --file import/urls.txt --category clothing
 
 The first command previews names, photo counts and prices without creating files. It fetches pages,
 but does not download or validate the image bytes until you run the second command. Product pages
-must provide standard **Product JSON-LD** data. This does not discover every product on a website,
-follow catalogue pagination, bypass logins or import arbitrary albums. **Direct Yupoo importing is
-not connected yet:** provide a real supplier album URL so an adapter can be built and tested.
-Downloaded Yupoo photos can use the existing photo-folder importer.
+must provide standard **Product JSON-LD** data. This generic URL-list command does not discover
+every product on a website, follow catalogue pagination, bypass logins or import arbitrary albums.
+Use the supplier-specific batch collector above for Husky catalogue discovery and Luxury Brand
+category pagination. Other Yupoo sellers require separate testing. Downloaded photos can also use
+the existing photo-folder importer.
 
 For supplier exports, save an array like this as `import/products.json`:
 

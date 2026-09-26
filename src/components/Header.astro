@@ -16,7 +16,7 @@ const summaries = (await getCategorySummaries()).filter((summary) => summary.cou
 {settings.announcement && <div class="announcement">{settings.announcement}</div>}
 <header class="site-header">
   <div class="container site-header__bar">
-    <a class="brand" href={url('/')}><span class="brand__mark" aria-hidden="true">{settings.siteName.charAt(0).toLowerCase()}<span>↗</span></span><span>{settings.siteName}<small>The personal collection</small></span></a>
+    <a class="brand" href={url('/')}><span class="brand__mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="m16 4 3 9 9 3-9 3-3 9-3-9-9-3 9-3Z" fill="currentColor" /><circle cx="26" cy="6" r="2" fill="currentColor" /></svg></span><span>{settings.siteName}<small>The personal collection</small></span></a>
     <a class="header-browse" href={shopUrl()}>The collection <span aria-hidden="true">↗</span></a>
     <form class="header-search" action={shopUrl()} method="get" role="search">
       <label class="search-field">
@@ -25,6 +25,7 @@ const summaries = (await getCategorySummaries()).filter((summary) => summary.cou
         <input class="field" type="search" name="q" placeholder="Search products" autocomplete="off" enterkeyhint="search" />
       </label>
     </form>
+    <a class="header-mobile-search" href={shopUrl()} aria-label="Search the collection"><SearchIcon /></a>
   </div>
   <nav class="container category-nav" aria-label="Categories">
     <a class="chip" href={shopUrl()} aria-current={currentCategory === 'all' ? 'page' : undefined}>Shop all</a>
