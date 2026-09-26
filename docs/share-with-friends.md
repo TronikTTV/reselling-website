@@ -4,6 +4,10 @@
 friends' phones, the site is hosted on **Cloudflare Pages**: free, allowed for shops, and it stays up
 when your PC is off.
 
+**Already done:** the site is live at **https://central-supply.pages.dev** (Cloudflare Pages project
+`central-supply`, connected to `TronikTTV/reselling-website`, branch `main`). The steps below are kept
+for reference.
+
 ## One-time setup (about 5 minutes)
 
 1. Sign up for free at [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up) and confirm

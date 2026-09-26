@@ -1,5 +1,19 @@
 # Storefront refresh
 
+## Live on Cloudflare Pages — 27 September 2026
+
+- Created the Cloudflare Pages project `central-supply` (build `npm run build`, output `dist`, branch
+  `main`, no environment variables). The first build of `84125d9` succeeded.
+- https://central-supply.pages.dev: home, shop, category, product, dashboard and editor pages returned
+  HTTP 200 and unknown pages 404. Link previews and canonical links use the pages.dev address (worked
+  out from `CF_PAGES_URL`), and the preview image loads. `/admin/config.yml` targets
+  `TronikTTV/reselling-website` on `main` with key-only sign-in, and the editor opens straight to the
+  access-token box.
+- An earlier Cloudflare *Worker* copy (`central-supply.<account>.workers.dev`, whose address showed the
+  owner's email name and whose link previews pointed to localhost) was deleted with the owner's
+  agreement. It now returns 404.
+- Docker is not used by this project; the local preview is `Start website.cmd` (Node).
+
 ## Owner dashboard, drafts and StockX details — 26 September 2026
 
 - Store renamed to **Central Supply**. The Instagram contact `Centralsupply.uk` adds **Message on

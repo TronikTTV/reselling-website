@@ -1,5 +1,7 @@
 # Reselling website
 
+**Live site: https://central-supply.pages.dev** · Editor: https://central-supply.pages.dev/admin/ · Dashboard: https://central-supply.pages.dev/manage/
+
 A free product catalogue that stays online around the clock. Friends open one link, browse by
 category, search, filter by brand, sort by price, and message you about anything they like.
 
