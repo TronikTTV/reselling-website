@@ -6,11 +6,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { categoryOf, getAllProducts, getDraftProducts, type Product } from '../lib/catalog';
 import { formatPrice, pluralise, STATUS_LABELS } from '../lib/format';
 import { productPhoto } from '../lib/images';
+import { adminKeyUrl, githubRepository } from '../lib/repository';
 import { categories, OTHER_CATEGORY } from '../lib/site';
 import { categoryUrl, productUrl, url } from '../lib/url';
 
 const products = await getAllProducts();
 const drafts = await getDraftProducts();
+const repositoryName = githubRepository().split('/')[1];
 const count = (status: string) => products.filter((product) => product.data.status === status).length;
 const unsold = products.filter((product) => product.data.status !== 'sold');
 const priced = unsold.filter((product) => product.data.price !== undefined);
@@ -175,10 +177,18 @@ const stats = [
     }
 
     <section class="dash-section manage-grid" aria-label="Help">
-      <div class="manage-panel">
+      <div class="manage-panel" id="sign-in">
         <p class="eyebrow">Signing in</p>
-        <h2>Only you can make changes.</h2>
-        <p>Press <strong>All products</strong> or <strong>Add a product</strong> above, then <strong>Sign In with GitHub</strong> and approve it. Only GitHub accounts allowed to change this store's repository can save anything, so there's no shared password to leak.</p>
+        <h2>Your admin key.</h2>
+        <p>Your admin key works like a password: make it once, save it in your phone's passwords or notes, and paste it whenever a new phone or computer asks.</p>
+        <ol>
+          <li>Tap <strong>Get my admin key</strong> below. GitHub opens with everything filled in.</li>
+          <li>Under <strong>Repository access</strong>, choose <strong>Only select repositories</strong> and pick <strong>{repositoryName}</strong>.</li>
+          <li>Tap <strong>Generate token</strong>, then copy the key and save it somewhere safe. GitHub only shows it once.</li>
+          <li>Press <strong>All products</strong> above, tap <strong>Sign In Using Access Token</strong> and paste the key.</li>
+        </ol>
+        <a class="button" href={adminKeyUrl()} target="_blank" rel="noopener">Get my admin key <span aria-hidden="true">↗</span></a>
+        <p>Each device stays signed in. Only someone with the key can change the store, so keep it private. Lost it, or worried someone else has it? Delete it at <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">GitHub → Fine-grained tokens</a> and make a new one.</p>
         <details>
           <summary>Working on this PC without signing in</summary>
           <p>Double-click <strong>Start website.cmd</strong>, open the editor in Chrome or Edge, choose <strong>Work with Local Repository</strong> and pick the website folder. Changes are saved into the folder; push them with GitHub Desktop to put them live.</p>

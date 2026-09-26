@@ -33,10 +33,9 @@ The **Owner dashboard** link in the footer opens `/manage/`: stock counts, listi
 a price, size or photos, and one-tap shortcuts into the editor at `/admin/`.
 
 1. On the live site, open the dashboard and press **All products** or **Add a product**.
-2. The first time on each phone or computer, press **Sign In with GitHub** and approve it. Only GitHub
-   accounts allowed to change this repository can save anything; there's no shared password to leak.
-   (This button needs the one-time setup in [Admin sign-in](docs/admin-sign-in.md). **Sign In Using
-   Access Token** also works if you ever need a backup.)
+2. The first time on each phone or computer, tap **Sign In Using Access Token** and paste your
+   **admin key**. The key works like a password: you make it once with the dashboard's **Get my admin
+   key** button and save it in your passwords or notes. See [Signing in](docs/admin-sign-in.md).
 3. Press **New Product**. Add photos (the first one is the cover; drag to reorder), the name,
    category, price and so on, then **Save**. The live site updates in about 1–2 minutes.
 
@@ -175,13 +174,13 @@ folder. Changes are saved straight into the files, and you push them with `git`.
 | Part | Where | Cost |
 | --- | --- | --- |
 | Website code, products and photos | This GitHub repository | Free |
-| Hosting | GitHub Pages, rebuilt by GitHub Actions on every change ([deploy.yml](.github/workflows/deploy.yml)) | Free |
+| Hosting | Cloudflare Pages, rebuilt automatically on every change ([setup](docs/share-with-friends.md)) | Free |
 | Admin page | [Sveltia CMS](https://sveltiacms.app) (open source) at `/admin/` | Free |
 
-**Limits:** a GitHub Pages site can be up to 1 GB and handle about 100 GB of traffic a month. That's
-roughly 3,000–4,000 photos, and far more visitors than a shop for friends and followers gets. If you
-ever get close, the admin page can be switched to store photos on a free image host instead.
+**Limits:** Cloudflare Pages allows unlimited visitors, 20,000 files per site and 500 rebuilds a month.
+The tighter limit is GitHub, which recommends keeping a repository under about 1 GB: roughly
+3,000–4,000 photos. If you ever get close, the admin page can be switched to store photos on a free
+image host instead.
 
-**Troubleshooting:** if a change hasn't shown up after a few minutes, open the repository's
-**Actions** tab on GitHub. A red ✗ means the build failed, and its log says why (usually a typo in a
-product).
+**Troubleshooting:** if a change hasn't shown up after a few minutes, open your project in
+Cloudflare → **Deployments**. A failed deployment's log says why (usually a typo in a product).

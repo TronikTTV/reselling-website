@@ -1,52 +1,39 @@
-# Share Central Supply with friends
+# Put Central Supply online
 
-`http://localhost:4321/` only opens the website on your own PC. To send a link that works on friends'
-phones, publish the website to a host. Once published, your PC can be switched off.
+`http://localhost:4321/` only opens the website on your own PC. To send a link that works on
+friends' phones, the site is hosted on **Cloudflare Pages**: free, allowed for shops, and it stays up
+when your PC is off.
 
-Your code is already connected to `TronikTTV/reselling-website` on GitHub. The latest local changes
-must be committed and pushed before a host connected to GitHub can build them.
+## One-time setup (about 5 minutes)
 
-## Publish with Cloudflare Pages
+1. Sign up for free at [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up) and confirm
+   your email address.
+2. In the Cloudflare dashboard, open **Workers & Pages**, then choose **Create application →
+   Pages → Connect to Git**.
+3. Choose **GitHub**, sign in, and allow Cloudflare to see the **reselling-website** repository.
+   Select it and press **Begin setup**.
+4. Fill in:
+   - **Project name:** `central-supply`. This becomes the address, `central-supply.pages.dev`. If
+     it's taken, pick something close.
+   - **Production branch:** `main`
+   - **Framework preset:** `Astro` (this fills in build command `npm run build` and output
+     directory `dist`).
+   - Leave everything else, including environment variables, as it is. The site works out its own
+     address and the correct Node.js version by itself.
+5. Press **Save and Deploy**. After a couple of minutes you get the link to send people.
 
-1. In GitHub Desktop, select this repository, review the website changes, enter a commit summary,
-   choose **Commit to main**, then **Push origin**.
-2. Sign in to [Cloudflare](https://dash.cloudflare.com/) and open **Workers & Pages**.
-3. Choose **Create application → Pages → Import an existing Git repository**. Connect GitHub and
-   select `TronikTTV/reselling-website`.
-4. Choose a project name such as `central-supply` if available. It becomes the address, for
-   example `central-supply.pages.dev`.
-5. Set the production branch to `main`, build command to `npm run build`, and output directory to
-   `dist`. Keep the repository root as the build root. This project is already static; it needs no
-   server adapter.
-6. Add these build environment variables:
+## Afterwards
 
-   | Name | Value |
-   | --- | --- |
-   | `NODE_VERSION` | `24` |
-   | `GITHUB_REPOSITORY` | `TronikTTV/reselling-website` |
-   | `GITHUB_REF_NAME` | `main` |
-   | `BASE_PATH` | `/` |
-   | `SITE_URL` | `https://YOUR-ACTUAL-PROJECT-NAME.pages.dev` |
+- Every change saved in the admin editor, merged from Codex or pushed from this PC rebuilds the site
+  automatically. It takes about 1–2 minutes.
+- A product page's **Copy link** button shares that particular listing.
+- If a change doesn't appear, open your project in Cloudflare → **Deployments** to see what happened.
+- Using your own domain later? Add it under the project's **Custom domains**, then add a `SITE_URL`
+  environment variable with the full address (e.g. `https://centralsupply.uk`) so link previews use it.
 
-   Replace the example `SITE_URL` with the address for the project name you actually chose. The
-   GitHub variables connect the existing admin editor to the correct repository; they are not passwords.
-7. Choose **Save and Deploy**. Once successful, open the public `pages.dev` link and check the site.
-8. Send that public link through WhatsApp, Instagram, or any messaging app. A product page's
-   **Copy link** button shares that particular listing.
+## Why not GitHub Pages?
 
-Future pushes to the connected branch rebuild the website automatically. Changes saved to GitHub
-through the admin editor also trigger a rebuild. Closing your local preview does not stop the public site.
-
-This guide does not create an account or publish the site for you. No public deployment has been
-verified during the launcher work.
-
-[Cloudflare's Astro deployment settings](https://developers.cloudflare.com/pages/framework-guides/deploy-an-astro-site/)
-and [Git integration instructions](https://developers.cloudflare.com/pages/get-started/git-integration/).
-
-## Why use a different host from the existing workflow?
-
-The repository includes a GitHub Pages workflow. GitHub's rules exclude sites primarily intended
-to facilitate commercial transactions, which is relevant to this reseller catalogue. You can keep
-the code on GitHub while hosting the website elsewhere. The existing workflow has not been changed.
-
+GitHub's rules exclude sites that are mainly for selling, which a shop catalogue is. The code stays on
+GitHub and only the hosting is on Cloudflare. The old GitHub Pages workflow is kept as a manual
+backup (Actions tab → **Run workflow**) and no longer runs on every change.
 [GitHub Pages usage rules](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).

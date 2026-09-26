@@ -8,8 +8,9 @@ link, browse by category, search, filter and sort, then message the owner about 
 checkout and no payments.
 
 - **Astro 7**, fully static output. No server, no database.
-- **Hosted free on GitHub Pages.** `.github/workflows/deploy.yml` rebuilds and deploys on every push to
-  `main`. It must stay free and static.
+- **Hosted free on Cloudflare Pages**, which rebuilds on every push to `main` (build `npm run build`,
+  output `dist`; the site address comes from `CF_PAGES_URL`, see `astro.config.mjs`).
+  `.github/workflows/deploy.yml` is a manual-only GitHub Pages backup. It must stay free and static.
 - **The owner manages products in Sveltia CMS** at `/admin/`, which commits Markdown files and photos
   straight to this repo. The owner is not a developer.
 - The owner mostly uses you for **visual design**: layout, typography, colour, spacing, components and
@@ -23,7 +24,7 @@ checkout and no payments.
 | Dev server | `npm run dev` (http://localhost:4321) |
 | Build (must pass) | `npm run build` |
 | Type check (must report 0 errors) | `npm run check` |
-| Build as GitHub Pages serves it (sub-folder) | `BASE_PATH=/test-repo SITE_URL=https://example.github.io npm run build` |
+| Build in a sub-folder (as GitHub Pages would serve it) | `BASE_PATH=/test-repo SITE_URL=https://example.github.io npm run build` |
 
 Node 22.12 or newer (the deploy workflow uses Node 24).
 
@@ -68,7 +69,7 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
    - `ShareButton`: `[data-share]`, `[data-share-label]`.
 4. **Photos.** Get product photo URLs from `productPhoto()` and `sharePreview()` in `src/lib/images.ts`.
    Don't request new sizes with `<Image>`/`<Picture>`: every extra size is generated for every photo,
-   which slows builds and grows the published site (GitHub Pages allows 1 GB). Keep decorative images
+   which slows builds and grows the published site (Cloudflare Pages allows 20,000 files per site). Keep decorative images
    small (under 200 KB).
 5. **Stay static and free.** No SSR adapters, databases, paid services, API keys or trackers. Keep
    client-side JavaScript small and vanilla (Astro `<script>` tags), with no UI frameworks just for

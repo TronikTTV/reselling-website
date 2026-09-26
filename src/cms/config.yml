@@ -11,6 +11,9 @@ backend:
   name: github
   repo: __GITHUB_REPOSITORY__
   branch: __GITHUB_BRANCH__
+  # Sign in with an "admin key" (a GitHub access token saved like a password). The "Sign In with
+  # GitHub" button is hidden because it needs a separate sign-in server; see docs/admin-sign-in.md.
+  auth_methods: [token]
   commit_messages:
     create: 'Add {{collection}}: {{slug}}'
     update: 'Update {{collection}}: {{slug}}'

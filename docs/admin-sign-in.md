@@ -1,77 +1,45 @@
-# Admin sign-in: the "Sign In with GitHub" button
+# Signing in to the admin editor
 
-A one-time setup of about 15 minutes. Afterwards you sign in to the editor with one tap on any phone
-or computer.
+The editor at `/admin/` saves changes straight into the store's GitHub repository. To let it do that,
+you sign in with an **admin key**: a GitHub access token that works like a password. Make it once,
+save it in your phone's passwords or notes, and paste it whenever a new phone or computer asks.
 
-**Why it works like this:** the website is plain files, so it can't check passwords itself. The editor
-saves your changes straight into your GitHub repository, and GitHub decides who's allowed to. The
-button needs a small free helper, the [Sveltia CMS Authenticator](https://github.com/sveltia/sveltia-cms-auth),
-running on Cloudflare to finish GitHub's sign-in.
+The website itself can't check passwords (it's plain files), so a short made-up password such as
+12321 couldn't keep other people out. The admin key can: without it, nobody can change the store.
 
-You need your GitHub account and a free [Cloudflare](https://dash.cloudflare.com/sign-up) account.
-The same Cloudflare account hosts the website.
+## Make your admin key (once, about 2 minutes)
 
-## 1. Put the site online
+1. Open the **Owner dashboard** (link at the bottom of every page) and tap **Get my admin key**.
+   GitHub opens with the name, "never expires" and "Contents: Read and write" already filled in.
+   (Or use [this link](https://github.com/settings/personal-access-tokens/new?name=Central+Supply+admin&target_name=TronikTTV&expires_in=none&contents=write).)
+2. Under **Repository access**, choose **Only select repositories** and pick **reselling-website**.
+3. Tap **Generate token**. Copy the key it shows (it starts with `github_pat_`) and save it in your
+   passwords or notes. GitHub only shows it once.
 
-Follow [Share the website with friends](share-with-friends.md). Note your site's address, for
-example `https://central-supply.pages.dev`.
+## Sign in on a phone or computer
 
-## 2. Add the sign-in helper to Cloudflare
+1. Open the Owner dashboard and press **All products** (or go to your site's `/admin/`).
+2. Tap **Sign In Using Access Token**, paste your admin key and confirm.
 
-1. Open [github.com/sveltia/sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) and press
-   **Deploy to Cloudflare**.
-2. Sign in to Cloudflare and GitHub when asked, and keep the suggested settings.
-3. When it's finished, copy the helper's address. It looks like
-   `https://sveltia-cms-auth.YOUR-NAME.workers.dev`.
+That device stays signed in until you sign out from the editor's account menu.
 
-## 3. Register the sign-in on GitHub
+## Keep it safe
 
-1. Open [github.com/settings/applications/new](https://github.com/settings/applications/new).
-2. Fill in:
-   - **Application name:** `Central Supply admin`
-   - **Homepage URL:** your site's address, e.g. `https://central-supply.pages.dev`
-   - **Authorization callback URL:** the helper's address with `/callback` on the end, e.g.
-     `https://sveltia-cms-auth.YOUR-NAME.workers.dev/callback`
-3. Press **Register application**. Copy the **Client ID**, then press **Generate a new client
-   secret** and copy that too. Keep the secret private: don't paste it into chat or any website file.
+- Anyone with the key can change the store, so only paste it into your own site's editor, never into
+  chat or other websites.
+- Lost it, or worried someone else has it? Delete it at
+  [GitHub → Settings → Fine-grained tokens](https://github.com/settings/personal-access-tokens) and make
+  a new one. Devices using the old key are signed out.
 
-## 4. Give the helper those details
+## On this PC without a key
 
-In Cloudflare, open **Workers & Pages → sveltia-cms-auth → Settings → Variables and Secrets** and add:
+Double-click **Start website.cmd**, open http://localhost:4321/admin/ in Chrome or Edge, and choose
+**Work with Local Repository**. Pick the website folder. Changes are saved into the folder; push them
+with GitHub Desktop (or `git push`) to put them live.
 
-| Name | Type | Value |
-| --- | --- | --- |
-| `GITHUB_CLIENT_ID` | Text | the Client ID |
-| `GITHUB_CLIENT_SECRET` | Secret | the client secret |
-| `ALLOWED_DOMAINS` | Text | your site's address without `https://`, plus `localhost`, e.g. `central-supply.pages.dev, localhost` |
+## Want a "Sign In with GitHub" button instead?
 
-Then press **Deploy** (or **Save and deploy**).
-
-## 5. Point the editor at the helper
-
-Add the helper's address to `src/cms/config.yml`, under `backend:`:
-
-```yaml
-backend:
-  name: github
-  base_url: https://sveltia-cms-auth.YOUR-NAME.workers.dev
-```
-
-Commit and push. The site rebuilds in a couple of minutes. (Or just send the helper's address in
-chat and it can be added for you. The address isn't secret.)
-
-## 6. Sign in
-
-Open your site's `/manage/` page, press **All products**, then **Sign In with GitHub** and approve it.
-Each device stays signed in until you sign out.
-
-## If something goes wrong
-
-- **"The redirect_uri is not associated with this application":** the callback URL in step 3 must be
-  exactly the helper's address followed by `/callback`.
-- **"Your domain is not allowed to use the authenticator":** add your site's address (without
-  `https://`) to `ALLOWED_DOMAINS` in step 4 and deploy again.
-- **You can't sign in at all:** **Sign In Using Access Token** still works as a backup; see the
-  README.
-- **Saved changes don't appear:** in Cloudflare, open your Pages project → **Deployments** to see
-  whether the rebuild finished.
+It's possible, but it needs a separate sign-in helper running in your Cloudflare account and a
+registered GitHub app: see the
+[Sveltia CMS Authenticator](https://github.com/sveltia/sveltia-cms-auth). Once that exists, add its
+address as `base_url` and remove the `auth_methods` line under `backend:` in `src/cms/config.yml`.

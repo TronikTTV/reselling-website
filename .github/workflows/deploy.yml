@@ -1,15 +1,15 @@
-# Builds the site and publishes it to GitHub Pages (free) every time something
-# changes on the main branch: a product saved in /admin/, a Codex pull request
-# being merged, or a push from your PC.
-name: Deploy website
+# Builds the site and publishes it to GitHub Pages.
+#
+# Switched to manual-only: the live site is hosted on Cloudflare Pages, which
+# rebuilds by itself on every change to main (GitHub Pages' rules exclude sites
+# that are mainly for selling). This is kept as a backup: the Actions tab's
+# "Run workflow" button still works if GitHub Pages is ever needed. To make it
+# automatic again, add back:
+#   push:
+#     branches: [main]
+name: Deploy website (GitHub Pages, manual)
 
 on:
-  push:
-    branches: [main]
-  # Lets the admin page's "Publish changes" button trigger a deploy (only used
-  # if you turn on skip_ci in src/cms/config.yml).
-  repository_dispatch:
-    types: [sveltia-cms-publish]
   # Adds a "Run workflow" button on the Actions tab.
   workflow_dispatch:
 
