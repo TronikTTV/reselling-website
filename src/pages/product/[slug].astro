@@ -1,12 +1,14 @@
 ---
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Copy from '../../components/Copy.astro';
 import Gallery from '../../components/Gallery.astro';
 import Icon from '../../components/Icon.astro';
 import ProductRail from '../../components/ProductRail.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import { categoryOf, getAllProducts, getListedProducts, type Product } from '../../lib/catalog';
 import { contactLinks, type ContactLink } from '../../lib/contact';
+import { copy } from '../../lib/copy';
 import { authenticityLabel, formatPrice, STATUS_LABELS } from '../../lib/format';
 import { sharePreview } from '../../lib/images';
 import { normalise } from '../../lib/search';
@@ -39,6 +41,9 @@ const preview = images[0] ? await sharePreview(images[0]) : undefined;
 const description = [priceText, brand, size && `Size ${size}`, condition, styleCode, status !== 'available' && STATUS_LABELS[status]]
   .filter(Boolean)
   .join(' · ');
+
+// data-edit hooks tell the admin Studio's live editor which part of the product was clicked.
+const edit = (part?: string) => `product:${product.id}${part ? `:${part}` : ''}`;
 
 const iconFor = (key: ContactLink['key']) =>
   key === 'instagram' ? 'instagram' : key === 'whatsapp' ? 'whatsapp' : key === 'email' ? 'mail' : 'arrow-up-right';
@@ -73,15 +78,15 @@ const specs = [
     </nav>
 
     <article class="product">
-      <Gallery images={images} alt={title} />
+      <Gallery images={images} alt={title} edit={edit('images')} />
 
       <div class="product__info">
-        <p class="product__brand">{brand || category.name}</p>
-        <h1 class="product__title">{title}</h1>
+        <p class="product__brand" data-edit={edit('brand')}>{brand || category.name}</p>
+        <h1 class="product__title" data-edit={edit('title')}>{title}</h1>
 
-        <div class="product__price-row">
+        <div class="product__price-row" data-edit={edit('price')}>
           <p class="product__price">
-            <span>{priceText ?? 'Ask for price'}</span>
+            <span data-field="price">{priceText ?? copy('common.askPrice')}</span>
             {showRetail && <s class="rrp">{`RRP ${formatPrice(retailPrice)}`}</s>}
           </p>
           <p class:list={['status', `status--${status}`]}>{STATUS_LABELS[status]}</p>
@@ -89,14 +94,14 @@ const specs = [
 
         {
           authenticityText && (
-            <p class="product__source">
+            <p class="product__source" data-edit={edit('authenticity')}>
               <Icon name="bag" size={17} />
               <span>{authenticityText}</span>
             </p>
           )
         }
 
-        <dl class="specs">
+        <dl class="specs" data-edit={edit('details')}>
           {
             specs.map((spec) => (
               <div class="spec">
@@ -133,13 +138,16 @@ const specs = [
           {
             status === 'sold' ? (
               <p class="notice">
-                {'This one has sold. '}
+                <Copy name="product.soldNotice" />
+                {' '}
                 <a href={categoryUrl(category.slug)}>{`See more in ${category.name}`}</a>
               </p>
             ) : (
               contacts.length > 0 && (
                 <>
-                  <p class="actions__label">{status === 'reserved' ? 'Reserved right now. DM to join the queue:' : 'Want it? Slide into the DMs:'}</p>
+                  <p class="actions__label">
+                    <Copy name={status === 'reserved' ? 'product.reservedLabel' : 'product.ctaLabel'} />
+                  </p>
                   <div class="contact-buttons">
                     {contacts.map((contact, index) => (
                       <a
@@ -149,7 +157,7 @@ const specs = [
                         rel={contact.external ? 'noopener' : undefined}
                       >
                         <Icon name={iconFor(contact.key)} />
-                        {contact.label}
+                        {contact.key === 'instagram' ? <Copy name="product.instagramButton" /> : contact.label}
                       </a>
                     ))}
                   </div>
@@ -163,7 +171,7 @@ const specs = [
 
         {
           hasDescription && (
-            <div class="prose">
+            <div class="prose" data-edit={edit('body')}>
               <Content />
             </div>
           )
@@ -171,7 +179,7 @@ const specs = [
 
         {
           tags.length > 0 && (
-            <div class="tags">
+            <div class="tags" data-edit={edit('tags')}>
               {tags.map((tag) => (
                 <a class="tag" href={shopUrl({ q: tag })}>
                   {tag}
@@ -192,10 +200,10 @@ const specs = [
             <div>
               <p class="eyebrow">
                 <Icon name="spark" size={14} />
-                Keep scrolling
+                <Copy name="product.relatedEyebrow" />
               </p>
               <h2 class="section__title" id="related-title">
-                You might also <em>like</em>
+                <Copy name="product.relatedTitle" accent />
               </h2>
             </div>
             <a class="section__link" href={categoryUrl(category.slug)}>
@@ -211,10 +219,10 @@ const specs = [
 
   {
     mainContact && (
-      <div class="buy-bar" data-buy-bar>
+      <div class="buy-bar" data-buy-bar data-edit={edit()}>
         <div class="buy-bar__info">
-          <p class="buy-bar__title">{title}</p>
-          <p class="buy-bar__price">{priceText ?? 'Ask for price'}</p>
+          <p class="buy-bar__title" data-field="title">{title}</p>
+          <p class="buy-bar__price" data-field="price">{priceText ?? copy('common.askPrice')}</p>
         </div>
         <a
           class="button button--accent"
@@ -223,7 +231,7 @@ const specs = [
           rel={mainContact.external ? 'noopener' : undefined}
         >
           <Icon name={iconFor(mainContact.key)} size={18} />
-          DM to cop
+          <Copy name="common.dmButton" />
         </a>
       </div>
     )

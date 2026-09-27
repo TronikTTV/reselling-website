@@ -2,6 +2,7 @@
 import AdReel, { type Ad } from '../components/AdReel.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CategoryTiles from '../components/CategoryTiles.astro';
+import Copy from '../components/Copy.astro';
 import Icon from '../components/Icon.astro';
 import Marquee from '../components/Marquee.astro';
 import ProductCard from '../components/ProductCard.astro';
@@ -59,10 +60,10 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
     <div class="container hero__inner">
       <p class="pill hero__pill">
         <span class="live-dot" aria-hidden="true"></span>
-        {inStock.length > 0 ? `${inStock.length} ${inStock.length === 1 ? 'piece' : 'pieces'} live now` : 'New pieces landing soon'}
+        {inStock.length > 0 ? `${inStock.length} ${inStock.length === 1 ? 'piece' : 'pieces'} live now` : <Copy name="home.comingSoon" />}
       </p>
       <h1 class="hero__title">
-        <span class="hero__line">
+        <span class="hero__line" data-edit="site:heroHeading">
           {
             headingWords.map((word, index) => (
               <>
@@ -75,7 +76,7 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
           }
         </span>
         {' '}
-        <span class="hero__line hero__line--accent">
+        <span class="hero__line hero__line--accent" data-edit="site:heroAccent">
           {
             accentWords.map((word, index) => (
               <>
@@ -88,17 +89,17 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
           }
         </span>
       </h1>
-      {settings.tagline && <p class="hero__tagline">{settings.tagline}</p>}
+      {settings.tagline && <p class="hero__tagline" data-edit="site:tagline">{settings.tagline}</p>}
       <div class="hero__actions">
         <a class="button button--accent button--lg" href={shopUrl()}>
-          Shop the drop
+          <Copy name="home.shopButton" />
           <Icon name="arrow-right" />
         </a>
         {
           dm && (
             <a class="button button--ghost button--lg" href={dm.href} target={dm.external ? '_blank' : undefined} rel={dm.external ? 'noopener' : undefined}>
               <Icon name={dm.key === 'instagram' ? 'instagram' : 'arrow-up-right'} />
-              DM to cop
+              <Copy name="common.dmButton" />
             </a>
           )
         }
@@ -114,14 +115,14 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
             <div>
               <p class="eyebrow">
                 <Icon name="spark" size={14} />
-                Fresh in
+                <Copy name="home.droppedEyebrow" />
               </p>
               <h2 class="section__title" id="dropped-title">
-                Just <em>dropped</em>
+                <Copy name="home.droppedTitle" accent />
               </h2>
             </div>
             <a class="section__link" href={shopUrl()}>
-              See all
+              <Copy name="home.droppedLink" />
               <Icon name="arrow-up-right" size={16} />
             </a>
           </div>
@@ -138,10 +139,10 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
           <div>
             <p class="eyebrow">
               <Icon name="spark" size={14} />
-              Find your thing
+              <Copy name="home.categoriesEyebrow" />
             </p>
             <h2 class="section__title" id="categories-title">
-              Shop by <em>vibe</em>
+              <Copy name="home.categoriesTitle" accent />
             </h2>
           </div>
         </div>
@@ -157,14 +158,14 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
           <div>
             <p class="eyebrow">
               <Icon name="spark" size={14} />
-              Keep scrolling
+              <Copy name="home.moreEyebrow" />
             </p>
             <h2 class="section__title" id="more-title">
-              More <em>heat</em>
+              <Copy name="home.moreTitle" accent />
             </h2>
           </div>
           <a class="section__link" href={shopUrl()}>
-            Shop all
+            <Copy name="home.moreLink" />
             <Icon name="arrow-up-right" size={16} />
           </a>
         </div>
@@ -181,7 +182,7 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
     products.length > 0 && (
       <div class="section__footer container" data-reveal>
         <a class="button button--ghost button--lg" href={shopUrl()}>
-          See everything
+          <Copy name="home.allButton" />
           <Icon name="arrow-right" />
         </a>
       </div>
@@ -194,7 +195,7 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
         <div class="empty">
           <p>No pieces yet.</p>
           <p>
-            Add your first one on the <a href={url('/admin/')}>admin page</a>.
+            Add your first one in the <a href={url('/admin/')}>store admin</a>.
           </p>
         </div>
       </section>
@@ -206,28 +207,28 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
       <div>
         <p class="eyebrow">
           <Icon name="spark" size={14} />
-          How it works
+          <Copy name="home.stepsEyebrow" />
         </p>
         <h2 class="section__title" id="how-title">
-          Three taps to <em>cop.</em>
+          <Copy name="home.stepsTitle" accent />
         </h2>
       </div>
     </div>
     <ol class="steps">
       <li class="step" data-reveal style="--i:0">
         <span class="step__num gradient-text">01</span>
-        <h3>Find your piece</h3>
-        <p>Browse the drops, or search by brand, style code or size.</p>
+        <h3><Copy name="home.step1Title" /></h3>
+        <p><Copy name="home.step1Text" /></p>
       </li>
       <li class="step" data-reveal style="--i:1">
         <span class="step__num gradient-text">02</span>
-        <h3>Slide into the DMs</h3>
-        <p>Tap DM to cop on any item. It opens a chat with the listing, so we know exactly what you want.</p>
+        <h3><Copy name="home.step2Title" /></h3>
+        <p><Copy name="home.step2Text" /></p>
       </li>
       <li class="step" data-reveal style="--i:2">
         <span class="step__num gradient-text">03</span>
-        <h3>Lock it in</h3>
-        <p>We confirm it's yours and sort out the rest with you.</p>
+        <h3><Copy name="home.step3Title" /></h3>
+        <p><Copy name="home.step3Text" /></p>
       </li>
     </ol>
   </section>

@@ -1,7 +1,9 @@
 ---
+import Copy from './Copy.astro';
 import Icon from './Icon.astro';
 import { getCategorySummaries } from '../lib/catalog';
 import { primaryContact } from '../lib/contact';
+import { copy } from '../lib/copy';
 import { settings } from '../lib/site';
 import { categoryUrl, shopUrl, url } from '../lib/url';
 
@@ -18,7 +20,7 @@ const dm = primaryContact();
 {
   settings.announcement && (
     <div class="announcement">
-      <p>{settings.announcement}</p>
+      <p data-edit="site:announcement">{settings.announcement}</p>
     </div>
   )
 }
@@ -26,12 +28,12 @@ const dm = primaryContact();
   <div class="container site-header__bar">
     <a class="brand" href={url('/')}>
       <span class="brand__mark" aria-hidden="true"><Icon name="spark" size={18} /></span>
-      <span class="brand__name">{settings.siteName}</span>
+      <span class="brand__name" data-edit="site:siteName">{settings.siteName}</span>
     </a>
     <nav class="site-nav" aria-label="Main">
-      <a href={shopUrl()} aria-current={currentCategory === 'all' ? 'page' : undefined}>Shop all</a>
-      <a href={url('/#categories')}>Categories</a>
-      <a href={url('/#how-it-works')}>How it works</a>
+      <a href={shopUrl()} aria-current={currentCategory === 'all' ? 'page' : undefined}><Copy name="nav.shopAll" /></a>
+      <a href={url('/#categories')}><Copy name="nav.categories" /></a>
+      <a href={url('/#how-it-works')}><Copy name="nav.howItWorks" /></a>
     </nav>
     <div class="site-header__actions">
       <a class="icon-button" href={shopUrl()} data-open-search aria-label="Search">
@@ -41,7 +43,7 @@ const dm = primaryContact();
         dm && (
           <a class="button button--accent button--sm header-dm" href={dm.href} target={dm.external ? '_blank' : undefined} rel={dm.external ? 'noopener' : undefined}>
             <Icon name={dm.key === 'instagram' ? 'instagram' : 'arrow-up-right'} size={16} />
-            <span>DM to cop</span>
+            <span><Copy name="common.dmButton" /></span>
           </a>
         )
       }
@@ -52,7 +54,7 @@ const dm = primaryContact();
       <nav class="category-nav" aria-label="Categories">
         <div class="container category-nav__track">
           <a class="chip" href={shopUrl()} aria-current={currentCategory === 'all' ? 'page' : undefined}>
-            All
+            <Copy name="nav.all" />
           </a>
           {summaries.map(({ category, count }) => (
             <a class="chip" href={categoryUrl(category.slug)} aria-current={currentCategory === category.slug ? 'page' : undefined}>
@@ -69,7 +71,7 @@ const dm = primaryContact();
 <dialog class="search-sheet" data-search-sheet aria-label="Search the collection">
   <form class="search-sheet__form" action={shopUrl()} method="get" role="search">
     <Icon name="search" size={22} />
-    <input type="search" name="q" placeholder="Search brands, styles, sizes…" autocomplete="off" enterkeyhint="search" aria-label="Search products" />
+    <input type="search" name="q" placeholder={copy('search.placeholder')} autocomplete="off" enterkeyhint="search" aria-label="Search products" />
     <button type="button" class="icon-button" data-close-search aria-label="Close search">
       <Icon name="close" />
     </button>
@@ -77,7 +79,7 @@ const dm = primaryContact();
   {
     summaries.length > 0 && (
       <div class="search-sheet__quick">
-        <p class="eyebrow">Jump to</p>
+        <p class="eyebrow"><Copy name="search.jumpTo" /></p>
         <div class="search-sheet__chips">
           {summaries.map(({ category }) => (
             <a class="chip" href={categoryUrl(category.slug)}>

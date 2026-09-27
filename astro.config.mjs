@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import studioDevApi from './scripts/studio-dev-api.mjs';
 
 /**
  * The public address of the site, used for link previews and the admin page.
@@ -23,4 +24,6 @@ function siteUrl() {
 export default defineConfig({
   site: siteUrl(),
   base: process.env.BASE_PATH || '/',
+  // Lets the admin Studio edit this folder's files while running `npm run dev` (never in the built site).
+  vite: { plugins: [studioDevApi()] },
 });

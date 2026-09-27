@@ -1,4 +1,5 @@
 ---
+import Copy from './Copy.astro';
 import Icon from './Icon.astro';
 import { getCategorySummaries } from '../lib/catalog';
 import { contactLinks, instagramHandle, primaryContact } from '../lib/contact';
@@ -19,12 +20,12 @@ const year = new Date().getFullYear();
         <section class="footer-cta" data-reveal aria-labelledby="footer-cta-title">
           <p class="eyebrow">
             <Icon name="spark" size={14} />
-            Seen something you like?
+            <Copy name="footer.eyebrow" />
           </p>
           <h2 class="footer-cta__title" id="footer-cta-title">
-            Slide into <em>the DMs.</em>
+            <Copy name="footer.title" accent />
           </h2>
-          <p>Send us a message and it's as good as yours.</p>
+          <p><Copy name="footer.text" /></p>
           <a class="button button--accent button--lg" href={dm.href} target={dm.external ? '_blank' : undefined} rel={dm.external ? 'noopener' : undefined}>
             <Icon name={dm.key === 'instagram' ? 'instagram' : 'arrow-up-right'} />
             {handle ?? dm.label}
@@ -37,17 +38,17 @@ const year = new Date().getFullYear();
       <div class="site-footer__brand">
         <a class="brand" href={url('/')}>
           <span class="brand__mark" aria-hidden="true"><Icon name="spark" size={18} /></span>
-          <span class="brand__name">{settings.siteName}</span>
+          <span class="brand__name" data-edit="site:siteName">{settings.siteName}</span>
         </a>
-        {settings.tagline && <p>{settings.tagline}</p>}
+        {settings.tagline && <p data-edit="site:tagline">{settings.tagline}</p>}
       </div>
       <nav class="footer-col" aria-label="Shop">
-        <p class="footer-col__title">Shop</p>
-        <a href={shopUrl()}>Everything</a>
+        <p class="footer-col__title"><Copy name="footer.shopHeading" /></p>
+        <a href={shopUrl()}><Copy name="footer.everything" /></a>
         {topCategories.map(({ category }) => <a href={categoryUrl(category.slug)}>{category.name}</a>)}
       </nav>
       <nav class="footer-col" aria-label="Contact">
-        <p class="footer-col__title">Say hi</p>
+        <p class="footer-col__title"><Copy name="footer.contactHeading" /></p>
         {
           profiles.map((link) => (
             <a href={link.href} target={link.external ? '_blank' : undefined} rel={link.external ? 'noopener' : undefined}>
@@ -55,15 +56,15 @@ const year = new Date().getFullYear();
             </a>
           ))
         }
-        <a href={url('/#how-it-works')}>How it works</a>
+        <a href={url('/#how-it-works')}><Copy name="nav.howItWorks" /></a>
       </nav>
     </div>
 
-    <p class="footer-wordmark" aria-hidden="true">{settings.siteName}</p>
+    <p class="footer-wordmark" aria-hidden="true" data-edit="site:siteName">{settings.siteName}</p>
 
     <div class="site-footer__legal">
       <span>{`© ${year} ${settings.siteName}`}</span>
-      <a href={url('/manage/')}>Owner dashboard</a>
+      <a href={url('/admin/')}>Store admin</a>
     </div>
   </div>
 </footer>

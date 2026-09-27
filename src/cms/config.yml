@@ -1,11 +1,13 @@
 # yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
 #
-# Settings for the admin page (/admin/), powered by Sveltia CMS: https://sveltiacms.app/en/docs
+# Settings for the classic editor (/admin/cms/), powered by Sveltia CMS: https://sveltiacms.app/en/docs
+# The main admin is the Studio at /admin/ (src/studio/), which saves the same files.
 #
 # The GitHub repository, branch and site address placeholders below are filled
 # in automatically when the site is built (see src/pages/admin/config.yml.ts).
 #
-# If you add or rename a product field here, update src/content.config.ts to match.
+# If you add or rename a product field here, update src/content.config.ts and the Studio
+# (src/studio/lib/product-file.ts, src/studio/views/product-form.ts) to match.
 
 backend:
   name: github
@@ -316,3 +318,5 @@ collections:
                 label: Description
                 widget: text
                 required: false
+
+      # __SITE_TEXT__ (replaced with the "Site text" file, generated from src/lib/copy-fields.ts)

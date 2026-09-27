@@ -1,6 +1,7 @@
 ---
 // The tilted scrolling ticker on the home page. The phrases come from
-// Settings → Store settings → Scrolling ticker. It's decorative, so screen readers skip it.
+// Site text → Home page → Scrolling ticker in the admin Studio. It's decorative, so screen readers skip it.
+// data-edit / data-field / data-i let the Studio's live editor find and update the phrases.
 import Icon from './Icon.astro';
 
 interface Props {
@@ -9,18 +10,18 @@ interface Props {
 
 const phrases = Astro.props.items.length > 0 ? Astro.props.items : ['Fresh drops', 'DM to cop', 'Hand-picked'];
 // Repeat short lists so one copy is always wider than the screen, then show it twice for a seamless loop.
-const run = Array.from({ length: Math.max(1, Math.ceil(8 / phrases.length)) }, () => phrases).flat();
+const run = Array.from({ length: Math.max(1, Math.ceil(8 / phrases.length)) }, () => phrases.map((phrase, index) => ({ phrase, index }))).flat();
 ---
 
-<div class="marquee-wrap" aria-hidden="true">
+<div class="marquee-wrap" aria-hidden="true" data-edit="site:ticker">
   <div class="marquee">
     <div class="marquee__track">
       {
         [0, 1].map(() => (
           <div class="marquee__group">
-            {run.map((phrase) => (
+            {run.map(({ phrase, index }) => (
               <span class="marquee__item">
-                {phrase}
+                <span data-field="phrase" data-i={index}>{phrase}</span>
                 <Icon name="spark" size={16} />
               </span>
             ))}

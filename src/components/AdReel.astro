@@ -3,11 +3,13 @@
 // Each slide plays the product's video (muted and looping) or, without one, slowly zooms
 // through its photo. Slides advance by themselves; tap the right or left side to skip or go back,
 // and press and hold to pause. Only the slide on screen ever plays.
+import Copy from './Copy.astro';
 import Icon from './Icon.astro';
 import type { Product } from '../lib/catalog';
 import type { ContactLink } from '../lib/contact';
 import type { ProductPhoto } from '../lib/images';
 import { categoryOf } from '../lib/catalog';
+import { copy } from '../lib/copy';
 import { formatPrice } from '../lib/format';
 import { productUrl } from '../lib/url';
 
@@ -31,11 +33,12 @@ const hasVideo = ads.some((ad) => ad.video);
     {
       ads.map(({ product, photo, video }, index) => {
         const { title, brand, price, size, condition } = product.data;
-        const meta = [formatPrice(price) ?? 'Ask for price', size, condition].filter(Boolean).join(' · ');
+        const meta = [formatPrice(price) ?? copy('common.askPrice'), size, condition].filter(Boolean).join(' · ');
         return (
           <article
             class:list={['reel__slide', index === 0 && 'is-active']}
             data-reel-slide
+            data-edit={`product:${product.id}`}
             aria-roledescription="slide"
             aria-label={`${index + 1} of ${ads.length}: ${title}`}
             aria-hidden={index === 0 ? undefined : 'true'}
@@ -51,11 +54,13 @@ const hasVideo = ads.some((ad) => ad.video);
                 autoplay={index === 0}
                 preload={index === 0 ? 'auto' : 'none'}
                 data-reel-video
+                data-field="video"
                 aria-hidden="true"
               />
             ) : (
               <img
                 class="reel__media reel__photo"
+                data-field="image"
                 src={photo.src}
                 srcset={photo.srcset}
                 sizes="100vw"
@@ -68,15 +73,15 @@ const hasVideo = ads.some((ad) => ad.video);
               />
             )}
             <div class="reel__content">
-              <p class="reel__eyebrow">
+              <p class="reel__eyebrow" data-field="brand">
                 <span class="live-dot" aria-hidden="true" />
                 {brand || categoryOf(product).name}
               </p>
-              <p class="reel__title">{title}</p>
-              <p class="reel__meta">{meta}</p>
+              <p class="reel__title" data-field="title">{title}</p>
+              <p class="reel__meta" data-field="meta">{meta}</p>
               <div class="reel__actions">
                 <a class="button button--lg" href={productUrl(product.id)} tabindex={index === 0 ? undefined : -1}>
-                  Shop now
+                  <Copy name="reel.shopButton" />
                   <Icon name="arrow-right" />
                 </a>
                 {dm && (
@@ -88,7 +93,7 @@ const hasVideo = ads.some((ad) => ad.video);
                     tabindex={index === 0 ? undefined : -1}
                   >
                     <Icon name={dm.key === 'instagram' ? 'instagram' : 'arrow-up-right'} />
-                    DM to cop
+                    <Copy name="common.dmButton" />
                   </a>
                 )}
               </div>

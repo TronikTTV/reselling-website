@@ -1,0 +1,69 @@
+{
+  "common": {
+    "dmButton": "DM to cop",
+    "askPrice": "Ask for price"
+  },
+  "home": {
+    "shopButton": "Shop the drop",
+    "comingSoon": "New pieces landing soon",
+    "droppedEyebrow": "Fresh in",
+    "droppedTitle": "Just *dropped*",
+    "droppedLink": "See all",
+    "categoriesEyebrow": "Find your thing",
+    "categoriesTitle": "Shop by *vibe*",
+    "moreEyebrow": "Keep scrolling",
+    "moreTitle": "More *heat*",
+    "moreLink": "Shop all",
+    "allButton": "See everything",
+    "stepsEyebrow": "How it works",
+    "stepsTitle": "Three taps to *cop.*",
+    "step1Title": "Find your piece",
+    "step1Text": "Browse the drops, or search by brand, style code or size.",
+    "step2Title": "Slide into the DMs",
+    "step2Text": "Tap DM to cop on any item. It opens a chat with the listing, so we know exactly what you want.",
+    "step3Title": "Lock it in",
+    "step3Text": "We confirm it's yours and sort out the rest with you."
+  },
+  "reel": {
+    "shopButton": "Shop now"
+  },
+  "nav": {
+    "shopAll": "Shop all",
+    "categories": "Categories",
+    "howItWorks": "How it works",
+    "all": "All"
+  },
+  "search": {
+    "placeholder": "Search brands, styles, sizes…",
+    "jumpTo": "Jump to"
+  },
+  "product": {
+    "ctaLabel": "Want it? Slide into the DMs:",
+    "reservedLabel": "Reserved right now. DM to join the queue:",
+    "instagramButton": "DM to cop on Instagram",
+    "soldNotice": "This one has sold.",
+    "relatedEyebrow": "Keep scrolling",
+    "relatedTitle": "You might also *like*"
+  },
+  "shop": {
+    "title": "Shop *everything*",
+    "description": "Every piece, hand-picked. Search, filter and find your next favourite.",
+    "searchPlaceholder": "Search brand, style code, size…",
+    "noMatches": "No pieces match that. Try another search.",
+    "empty": "Nothing here yet. Fresh pieces are on the way."
+  },
+  "footer": {
+    "eyebrow": "Seen something you like?",
+    "title": "Slide into *the DMs.*",
+    "text": "Send us a message and it's as good as yours.",
+    "shopHeading": "Shop",
+    "everything": "Everything",
+    "contactHeading": "Say hi"
+  },
+  "notFound": {
+    "title": "Gone *missing.*",
+    "text": "That page doesn't exist, or the piece has moved on. There's plenty more where it came from.",
+    "shopButton": "Shop everything",
+    "homeButton": "Back home"
+  }
+}

@@ -1,20 +1,59 @@
 ---
-// The admin page where products are added and edited (Sveltia CMS).
-// Its settings live in src/cms/config.yml, served next to this page as config.yml.
+// The store admin ("Studio"): overview, products (photos and videos), site text, categories,
+// settings, and a live editor that shows the real site to click and edit. It runs in the browser
+// (src/studio/) and saves to GitHub with the owner's admin key; Cloudflare Pages then rebuilds the
+// site. The classic editor (Sveltia CMS) is still at /admin/cms/.
+import '@fontsource-variable/geist';
+import '@fontsource/instrument-serif/400-italic.css';
+import '../../studio/studio.css';
+import { readFileSync } from 'node:fs';
+import { adminKeyUrl, githubBranch, githubRepository } from '../../lib/repository';
 import { url } from '../../lib/url';
+
+// Read directly rather than imported, so saving settings from the Studio on this PC (npm run dev)
+// doesn't reload the Studio page.
+function storeName() {
+  try {
+    return String(JSON.parse(readFileSync('src/data/settings.json', 'utf8')).siteName || '').trim() || 'Your store';
+  } catch {
+    return 'Your store';
+  }
+}
+
+const config = {
+  repo: githubRepository(),
+  branch: githubBranch(),
+  base: import.meta.env.BASE_URL,
+  site: new URL(import.meta.env.BASE_URL, Astro.site ?? Astro.url).href,
+  keyUrl: adminKeyUrl(),
+  dev: import.meta.env.DEV,
+  siteName: storeName(),
+};
+// Safe inside a <script> tag.
+const configJson = JSON.stringify(config).replace(/</g, '\\u003c');
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>Store admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#050507" />
+    <title>{`Studio · ${config.siteName}`}</title>
     <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
-    <link href={url('/admin/config.yml')} type="application/yaml" rel="cms-config-url" />
   </head>
-  <body>
-    <script is:inline src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+  <body class="st-body">
+    <div id="studio" class="st-root">
+      <div class="st-boot">
+        <span class="st-spinner" aria-hidden="true"></span>
+      </div>
+    </div>
+    <noscript><p class="st-noscript">The store admin needs JavaScript switched on.</p></noscript>
+    <script type="application/json" id="studio-config" set:html={configJson} />
   </body>
 </html>
+
+<script>
+  import '../../studio/main.ts';
+</script>

@@ -38,7 +38,7 @@ const tiles = await Promise.all(
           />
         )}
         <span class="tile__label">
-          <span class="tile__name">{category.name}</span>
+          <span class="tile__name" data-edit={`category:${category.slug}:name`}>{category.name}</span>
           <span class="tile__count">{pluralise(count, 'piece')}</span>
         </span>
         <span class="tile__arrow" aria-hidden="true">

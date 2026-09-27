@@ -8,14 +8,16 @@ import { productPhoto } from '../lib/images';
 interface Props {
   images: ImageMetadata[];
   alt: string;
+  /** data-edit hook for the admin Studio's live editor, e.g. "product:<id>:images". */
+  edit?: string;
 }
 
-const { images, alt } = Astro.props;
+const { images, alt, edit } = Astro.props;
 const photos = await Promise.all(images.map((image) => productPhoto(image)));
 const label = (index: number) => (photos.length > 1 ? `${alt}, photo ${index + 1} of ${photos.length}` : alt);
 ---
 
-<div class="gallery" data-gallery>
+<div class="gallery" data-gallery data-edit={edit}>
   {
     photos.length === 0 ? (
       <div class="gallery__empty">No photos yet</div>
@@ -36,6 +38,8 @@ const label = (index: number) => (photos.length > 1 ? `${alt}, photo ${index + 1
                   fetchpriority={index === 0 ? 'high' : 'auto'}
                   decoding="async"
                   data-vt-photo={index === 0 ? '' : undefined}
+                  data-field="image"
+                  data-i={index}
                   data-fade={index === 0 ? undefined : ''}
                   style={index === 0 ? 'view-transition-name: product-photo' : undefined}
                 />

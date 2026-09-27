@@ -1,5 +1,33 @@
 # Storefront refresh
 
+## Store admin Studio and live editor — 27 September 2026
+
+- `/admin/` is now the Studio (`src/studio/`): Overview, Live editor, Products, product editor (photos,
+  video, every field), Site text, Categories and Settings. It signs in with the existing admin key and
+  saves each Publish as one commit through GitHub's API. The classic editor moved to `/admin/cms/`;
+  `/manage/` forwards to `/admin/`.
+- All site wording moved to `src/data/content.json` (Site text) with defaults in
+  `src/lib/copy-fields.ts`. The storefront renders the same text as before; `data-edit` / `data-field`
+  hooks were added for the live editor.
+- `npm run test:studio` (9 tests) publishes against an in-memory fake of GitHub's API: every kind of
+  change in one commit (edits, new photo and video uploads, a removed photo deleted, a new product
+  folder, a duplicate reusing the original's photo, a deleted product, site text, settings,
+  categories), a second device saving mid-publish (both sets of changes kept, photos uploaded once),
+  validation, and wrong-key errors. Reading the real repository (public, no key) returned the same
+  files, text and photo bytes.
+- "Edit this PC's files" mode (`npm run dev` only) published a mixed batch of 7 changes to the working
+  folder; the product diffs only touched changed lines, the new product page returned 200, the deleted
+  and draft ones 404, and the new wording showed on the site. The test changes were then restored.
+- Live editor checked on the dev server at 375px and 1100–1366px: 65 editable things found on the home
+  page, typing on the page updates the store, Esc cancels, italic *stars* render, the store name updates
+  in all three places, product cards open the product panel (a sheet on phones), price and name edits
+  show on the page as you type, and Site text's "Show on page" selects the right heading. Found and fixed
+  on the way: product fields not saving (quoted markers), the Studio building each page twice, phone
+  photo buttons overflowing, the live editor 6px too wide on phones, and the blank-frame load.
+- `astro check` 0 errors; importer tests 11/11; normal and `/test-repo` builds passed. The Studio's
+  script (79 KB compressed) and styles load only on `/admin/`.
+- **Not yet checked with the real admin key:** the first real Publish from the live site is the owner's.
+
 ## Live on Cloudflare Pages — 27 September 2026
 
 - Created the Cloudflare Pages project `central-supply` (build `npm run build`, output `dist`, branch

@@ -38,10 +38,10 @@ const accent = words[words.length - 1];
         <Icon name="spark" size={14} />
         {pluralise(products.length, 'piece')}
       </p>
-      <h1 class="page-head__title">
+      <h1 class="page-head__title" data-edit={`category:${category.slug}:name`}>
         {lead && `${lead} `}<em>{accent}</em>
       </h1>
-      <p class="page-head__desc">{category.description || `Hand-picked ${category.name.toLowerCase()}. Tap any piece for photos, sizes and price.`}</p>
+      <p class="page-head__desc" data-edit={`category:${category.slug}:description`}>{category.description || `Hand-picked ${category.name.toLowerCase()}. Tap any piece for photos, sizes and price.`}</p>
     </header>
     <ProductBrowser products={products} />
   </div>

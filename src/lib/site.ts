@@ -1,8 +1,9 @@
-// Store settings and categories, both editable from the admin page (/admin/ → Settings).
+// Store settings and categories, both editable in the admin Studio (/admin/).
 // The raw JSON may have missing or blank keys (the admin page drops empty
 // optional fields), so everything is normalised here before use.
 import rawSettings from '../data/settings.json';
 import rawCategories from '../data/categories.json';
+import { SITE_TEXT_DEFAULTS } from './copy-fields';
 
 export interface ContactDetails {
   instagram: string;
@@ -49,10 +50,10 @@ const s = rawSettings as Loose;
 const c = (s?.contact ?? {}) as Loose;
 
 export const settings: SiteSettings = {
-  siteName: text(s?.siteName, 'My Store'),
+  siteName: text(s?.siteName, SITE_TEXT_DEFAULTS.siteName),
   tagline: text(s?.tagline),
-  heroHeading: text(s?.heroHeading, 'Rare finds.'),
-  heroAccent: text(s?.heroAccent, 'Real ones only.'),
+  heroHeading: text(s?.heroHeading, SITE_TEXT_DEFAULTS.heroHeading),
+  heroAccent: text(s?.heroAccent, SITE_TEXT_DEFAULTS.heroAccent),
   ticker: (Array.isArray(s?.ticker) ? (s.ticker as unknown[]) : []).map((item) => text(item)).filter(Boolean),
   announcement: text(s?.announcement),
   currency: text(s?.currency, 'GBP').toUpperCase(),

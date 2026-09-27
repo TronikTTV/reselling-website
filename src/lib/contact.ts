@@ -1,3 +1,4 @@
+import { copy } from './copy';
 import { settings } from './site';
 
 export interface ContactLink {
@@ -33,7 +34,7 @@ export function contactLinks(product?: { title: string; url: string }): ContactL
     const name = handle(instagram);
     links.push({
       key: 'instagram',
-      label: product ? 'DM to cop on Instagram' : 'Instagram',
+      label: product ? copy('product.instagramButton') : 'Instagram',
       href: product ? `https://ig.me/m/${name}` : `https://www.instagram.com/${name}/`,
       external: true,
     });
@@ -68,7 +69,7 @@ export function contactLinks(product?: { title: string; url: string }): ContactL
 export function primaryContact(): ContactLink | undefined {
   const { instagram } = settings.contact;
   if (instagram) {
-    return { key: 'instagram', label: 'DM to cop', href: `https://ig.me/m/${handle(instagram)}`, external: true };
+    return { key: 'instagram', label: copy('common.dmButton'), href: `https://ig.me/m/${handle(instagram)}`, external: true };
   }
   return contactLinks()[0];
 }

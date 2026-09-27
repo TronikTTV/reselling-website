@@ -3,9 +3,11 @@
 // Used on the Shop all page and on every category page. All the products are
 // in the page; the script below just hides, shows and re-orders the cards,
 // and keeps the address bar in sync so filtered views can be shared.
+import Copy from './Copy.astro';
 import ProductCard from './ProductCard.astro';
 import Icon from './Icon.astro';
 import type { CategorySummary, Product } from '../lib/catalog';
+import { copy } from '../lib/copy';
 import { pluralise } from '../lib/format';
 import { normalise } from '../lib/search';
 
@@ -46,7 +48,7 @@ const hasSold = products.some((product) => product.data.status === 'sold');
   {
     products.length === 0 ? (
       <div class="empty">
-        <p>Nothing here yet. Fresh pieces are on the way.</p>
+        <p><Copy name="shop.empty" /></p>
       </div>
     ) : (
       <>
@@ -54,7 +56,7 @@ const hasSold = products.some((product) => product.data.status === 'sold');
           <label class="browser__search search-field">
             <span class="visually-hidden">Search</span>
             <Icon name="search" />
-            <input class="field" type="search" name="q" placeholder="Search brand, style code, size…" autocomplete="off" enterkeyhint="search" />
+            <input class="field" type="search" name="q" placeholder={copy('shop.searchPlaceholder')} autocomplete="off" enterkeyhint="search" />
           </label>
           <div class="browser__filters">
           {categoryOptions.length > 1 && (
@@ -100,7 +102,7 @@ const hasSold = products.some((product) => product.data.status === 'sold');
         </div>
 
         <div class="empty" data-empty hidden>
-          <p>No pieces match that. Try another search.</p>
+          <p><Copy name="shop.noMatches" /></p>
           <button type="button" class="link-button" data-clear>Clear filters</button>
         </div>
 

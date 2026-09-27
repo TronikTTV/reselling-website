@@ -1,12 +1,14 @@
 # Reselling website
 
-**Live site: https://central-supply.pages.dev** · Editor: https://central-supply.pages.dev/admin/ · Dashboard: https://central-supply.pages.dev/manage/
+**Live site: https://central-supply.pages.dev** · Store admin: https://central-supply.pages.dev/admin/
 
 A free product catalogue that stays online around the clock. Friends open one link, browse by
 category, search, filter by brand, sort by price, and message you about anything they like.
 
 - **Static hosting.** Once published, it stays up when your PC is off. See [sharing the website](docs/share-with-friends.md) for hosting setup.
-- **Add products from your phone or PC** on the admin page. Photos are shrunk automatically.
+- **Run everything from the store admin**, on your phone or PC: products, photos and videos, every
+  word on the site, categories and contact details, plus a live editor where you click your actual
+  site to change it.
 - **Plenty of room.** Roughly 3,000–4,000 photos (about 800–1,000 products with 4 photos each) fit
   within GitHub's free limits.
 - **Ready for Codex.** [AGENTS.md](AGENTS.md) tells ChatGPT Codex how the site works, so it can
@@ -29,64 +31,78 @@ local preview; they do not publish changes. The older Open/Close files still wor
 The localhost address works on this PC. Friends use the deployed website's address on their phones.
 Follow [Share the website with friends](docs/share-with-friends.md) to get a public link.
 
-## Adding a product (admin page)
+## The store admin (Studio)
 
-The **Owner dashboard** link in the footer opens `/manage/`: stock counts, listings that still need
-a price, size or photos, and one-tap shortcuts into the editor at `/admin/`.
+Open **/admin/** on your site, or tap **Store admin** at the very bottom of any page. The old
+`/manage/` dashboard address takes you there too.
 
-1. On the live site, open the dashboard and press **All products** or **Add a product**.
-2. The first time on each phone or computer, tap **Sign In Using Access Token** and paste your
-   **admin key**. The key works like a password: you make it once with the dashboard's **Get my admin
-   key** button and save it in your passwords or notes. See [Signing in](docs/admin-sign-in.md).
-3. Press **New Product**. Add photos (the first one is the cover; drag to reorder), the name,
-   category, price and so on, then **Save**. The live site updates in about 1–2 minutes.
+**Signing in.** The first time on each phone or computer, paste your **admin key** (the long code
+starting `github_pat_` that you saved in your passwords or notes). That device then stays signed in.
+Lost it? The sign-in screen's **Where do I find my admin key?** has a button that makes a new one in
+about two minutes. See [Signing in](docs/admin-sign-in.md).
 
-On this PC you can also edit without signing in: double-click **Start website.cmd**, open
-http://localhost:4321/admin/ in Chrome or Edge, choose **Work with Local Repository** and pick this
-folder. Those changes are saved into the folder and go live when you push them.
+What's inside:
+
+- **Overview:** your stock at a glance (live, available, reserved, sold, stock value, drafts), pieces
+  missing a photo, price, size or brand, the ads at the top of your home page, the latest pieces,
+  quick edits and recent activity.
+- **Live editor:** your actual site in a frame. Everything you can change gets an outline when you
+  hover. Click any text to type straight onto the page; click a product or photo to edit it in the side
+  panel. Pick any page from the menu, switch between phone and computer views, or choose **Browse** to
+  click around normally.
+- **Products:** search, filters (available, reserved, sold, drafts, on the home page, needs attention,
+  not live yet), grid or list, change a status or feature a piece in one tap, and edit lots at once
+  (select them, then mark sold, feature, hide, move category or delete).
+- **Product editor:** drop in photos (they're shrunk to 1600px and cleaned of location data), drag to
+  reorder or pick the cover, add a video, and fill in every detail. **Duplicate** copies a piece so a
+  similar one takes seconds to list.
+- **Site text:** every heading, button and line of text, grouped by page, each with its default and a
+  **Show on page** button. In titles, words in **stars** become the italic accent.
+- **Categories:** rename, drag to reorder, add descriptions, add or delete (products move with them).
+- **Settings:** store name, currency, whether sold pieces stay up, contact details (these become the DM
+  buttons, so fill in at least one), and your admin key.
+
+**Publishing.** Changes wait in the **Publish** bar at the bottom, where you can review or undo any of
+them. Press **Publish** and they're all saved at once; your site updates about a minute later. The
+status light shows **Going live…** and then **Live** when it's done.
 
 Each product can also have:
 
-- **Draft (hide from the shop):** save a listing without it appearing anywhere until you switch it off.
+- **Draft (hidden):** keep a listing off the site until it's ready.
 - **Where it's from:** e.g. *Bought on StockX*, shown under the price on the product page.
 - **Style code / SKU**, **Colourway** and **What's included** (box, StockX tag, receipt…). People can
   search by style code.
-- **Product video:** a short clip (5–15 seconds, MP4, under 20 MB; vertical looks best).
+- **Video:** a short clip (5–15 seconds, MP4, up to 24 MB; vertical looks best).
+
+Tips:
+
+- **Sold something?** In Products, change its status to *Sold*. It stays on the site with a SOLD badge,
+  or you can hide sold pieces completely in Settings.
+- **No price?** Leave it empty and the site shows "Ask for price".
+- **Delete the example products** (all named "Example …") once you've added your own: tick them in
+  Products and press **Delete**, then **Publish**.
+
+On this PC you can also edit without a key: double-click **Start website.cmd**, open
+http://localhost:4321/admin/ and choose **Edit this PC's files**. Changes are saved into the folder and
+go live when it's pushed to GitHub. The previous editor (Sveltia CMS) is still at `/admin/cms/` if you
+ever need it.
 
 ### Video ads at the top of the home page
 
 The top of the home page plays your **featured** products like stories: full screen, muted,
 looping, with progress bars. Visitors can tap to skip, hold to pause and turn the sound on. Products
 with a video play first. Products without one get a slow cinematic zoom on their photo instead, so it
-works even before you've filmed anything.
+works even before you've filmed anything. The Overview shows which pieces are in the ads, in order.
 
-To add one: open the product, switch on **Feature on the home page**, add a **Product video** if you
-have one, and save. Keep clips short and small; CapCut or TikTok's "save video" at 720p works well.
+To add one: open the product, switch on **Feature on the home page**, add a **Video** if you have one,
+and publish. Keep clips short and small; CapCut or TikTok's "save video" at 720p works well.
 iPhone camera files can be too big, and some Android phones can't play iPhone's HEVC format, so export
 them as MP4 first.
 
-The rest of the home page is the scrolling ticker (edit its phrases in **Settings → Store settings →
-Scrolling ticker**), your headline, the newest pieces, categories and "How it works". It all animates
-in as you scroll. If your own computer has animation effects turned off (Windows **Settings →
-Accessibility → Visual effects**), you'll see a calmer version with fades only. Phones show the full
-motion.
-
-Tips:
-
-- **Sold something?** Change its **Status** to *Sold*. It stays on the site with a SOLD badge, or you
-  can hide sold items completely in Settings.
-- **No price?** Leave it empty and the site shows "Ask for price".
-- **Delete the example products** (all named "Example …") once you've added your own.
-
-## Store settings and categories
-
-On the admin page, open **Settings**:
-
-- **Store settings:** store name, tagline, announcement bar, currency, and **how people can contact
-  you** (Instagram, WhatsApp, Snapchat, TikTok, email). These become the "Message me" buttons on every
-  product, so fill in at least one.
-- **Categories:** add, rename or drag to reorder. The "web address" is used in links, e.g. `watches`
-  becomes `/category/watches/`.
+The rest of the home page is the scrolling ticker, your headline, the newest pieces, categories and
+"How it works", all editable in the Live editor or Site text. It all animates in as you scroll. If your
+own computer has animation effects turned off (Windows **Settings → Accessibility → Visual effects**),
+you'll see a calmer version with fades only. Phones show the full motion.
 
 ## Adding lots of products at once (on this PC)
 
@@ -163,11 +179,11 @@ Start with a small batch to check the source before importing thousands.
 The storefront is dark and premium: near-black with slow aurora glows and film grain, Geist and
 Instrument Serif italic type, glass panels, electric-blue gradients, the story-style ad reel, a tilted
 ticker, swipe rows, a bento category grid, and page transitions where a product's photo flies into
-its page. Change the headline, tagline and ticker in **Settings → Store settings**; the reel follows
-your featured products automatically. All colours and fonts are set at the top of
+its page. Change the headline, tagline, ticker and any other wording in the store admin's Live editor
+or Site text; the reel follows your featured products automatically. All colours and fonts are set at the top of
 `src/styles/global.css`.
 
-Run `npm run check`, `npm run build`, and `npm run test:import` before publishing. Check phone and
+Run `npm run check`, `npm run build`, `npm run test:import` and `npm run test:studio` before publishing. Check phone and
 desktop browsing, filters, sorting, galleries and sharing. No deployment or GitHub connection is
 created by these commands.
 
@@ -188,9 +204,9 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:4321. The admin page also works locally at
-http://localhost:4321/admin/: choose **Work with Local Repository** (Chrome or Edge) and pick this
-folder. Changes are saved straight into the files, and you push them with `git`.
+Then open http://localhost:4321. The store admin also works locally at
+http://localhost:4321/admin/: choose **Edit this PC's files**. Changes are saved straight into the
+files, and you push them with `git`.
 
 ## How it works
 
@@ -198,12 +214,12 @@ folder. Changes are saved straight into the files, and you push them with `git`.
 | --- | --- | --- |
 | Website code, products and photos | This GitHub repository | Free |
 | Hosting | Cloudflare Pages, rebuilt automatically on every change ([setup](docs/share-with-friends.md)) | Free |
-| Admin page | [Sveltia CMS](https://sveltiacms.app) (open source) at `/admin/` | Free |
+| Store admin | The Studio at `/admin/` (part of this site, saves to GitHub with your admin key); the classic [Sveltia CMS](https://sveltiacms.app) editor at `/admin/cms/` | Free |
 
 **Limits:** Cloudflare Pages allows unlimited visitors, 20,000 files per site and 500 rebuilds a month.
 The tighter limit is GitHub, which recommends keeping a repository under about 1 GB: roughly
-3,000–4,000 photos. If you ever get close, the admin page can be switched to store photos on a free
+3,000–4,000 photos. If you ever get close, the site can be switched to store photos on a free
 image host instead.
 
-**Troubleshooting:** if a change hasn't shown up after a few minutes, open your project in
-Cloudflare → **Deployments**. A failed deployment's log says why (usually a typo in a product).
+**Troubleshooting:** if a change hasn't shown up after a few minutes (the store admin's status light
+says **Not live yet**), open your project in Cloudflare → **Deployments**. A failed deployment's log says why (usually a typo in a product).

@@ -30,9 +30,9 @@ GitHub and choosing a suitable static host are separate decisions. No hosting ch
 
 ## Editing your listings
 
-Until the site is connected and deployed, open the local `/admin/` page in Chrome or Edge, choose
-**Work with Local Repository**, and select the website folder. After publishing, the CMS must
-authenticate to the GitHub repository to save changes. A shared website PIN is not GitHub authentication.
+Until the site is connected and deployed, run the local preview, open its `/admin/` page and choose
+**Edit this PC's files**. After publishing, the store admin saves to the GitHub repository with your
+admin key (see [Signing in](admin-sign-in.md)). A shared website PIN is not GitHub authentication.
 
 The workflow fills in the repository address automatically. You do not need to put a GitHub password
 in a file or send it in chat.

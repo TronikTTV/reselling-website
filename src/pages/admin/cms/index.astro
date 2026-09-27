@@ -1,0 +1,20 @@
+---
+// The classic editor (Sveltia CMS), kept as a backup to the Studio at /admin/.
+// Its settings live in src/cms/config.yml, served at /admin/config.yml.
+import { url } from '../../../lib/url';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Classic editor</title>
+    <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+    <link href={url('/admin/config.yml')} type="application/yaml" rel="cms-config-url" />
+  </head>
+  <body>
+    <script is:inline src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+  </body>
+</html>

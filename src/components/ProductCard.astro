@@ -1,6 +1,7 @@
 ---
 import Icon from './Icon.astro';
 import { categoryOf, type Product } from '../lib/catalog';
+import { copy } from '../lib/copy';
 import { formatPrice, STATUS_LABELS } from '../lib/format';
 import { productPhoto } from '../lib/images';
 import { normalise } from '../lib/search';
@@ -23,7 +24,8 @@ const photo = images[0] ? await productPhoto(images[0]) : undefined;
 const priceText = formatPrice(price);
 const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
 // The data-* attributes on <article> are read by ProductBrowser's filter script, and data-vt-link /
-// data-vt-photo by the page-transition script in BaseLayout. Keep them whatever the card looks like.
+// data-vt-photo by the page-transition script in BaseLayout, and data-edit / data-field by the admin
+// Studio's live editor. Keep them whatever the card looks like.
 ---
 
 <article
@@ -38,6 +40,7 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
   data-title={normalise(title)}
   hidden={hidden}
   data-reveal
+  data-edit={`product:${product.id}`}
   style={`--i:${index % 4}`}
 >
   <a class="card__link" href={productUrl(product.id)} data-vt-link>
@@ -57,6 +60,7 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
             decoding="async"
             data-vt-photo
             data-fade
+            data-field="image"
           />
         )
       }
@@ -66,11 +70,11 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
       <span class="card__cta" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
     </div>
     <div class="card__body">
-      <p class="card__brand">{brand || category.name}</p>
-      <h3 class="card__title">{title}</h3>
+      <p class="card__brand" data-field="brand">{brand || category.name}</p>
+      <h3 class="card__title" data-field="title">{title}</h3>
       <div class="card__foot">
         <p class="card__price">
-          {priceText ? <span>{priceText}</span> : <span class="card__ask">Ask for price</span>}
+          {priceText ? <span data-field="price">{priceText}</span> : <span class="card__ask" data-field="price">{copy('common.askPrice')}</span>}
           {showRetail && <s class="rrp">{formatPrice(retailPrice)}</s>}
         </p>
         {size && <span class="card__size">{size}</span>}

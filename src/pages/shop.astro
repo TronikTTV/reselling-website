@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Copy from '../components/Copy.astro';
 import Icon from '../components/Icon.astro';
 import ProductBrowser from '../components/ProductBrowser.astro';
 import { getCategorySummaries, getListedProducts } from '../lib/catalog';
@@ -25,8 +26,8 @@ const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;
         <Icon name="spark" size={14} />
         {pluralise(products.length, 'piece')}
       </p>
-      <h1 class="page-head__title">Shop <em>everything</em></h1>
-      <p class="page-head__desc">Every piece, hand-picked. Search, filter and find your next favourite.</p>
+      <h1 class="page-head__title"><Copy name="shop.title" accent /></h1>
+      <p class="page-head__desc"><Copy name="shop.description" /></p>
     </header>
     <ProductBrowser products={products} categories={summaries} />
   </div>
