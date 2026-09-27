@@ -10,4 +10,6 @@ size: 100ml
 includes:
   - Original box
 date: 2026-09-27T22:45:34.455Z
+featured: true
+video: 0928-6b60a.mp4
 ---
