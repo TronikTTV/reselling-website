@@ -1,5 +1,5 @@
 ---
-title: Armani Stronger With You
+title: Armani In Love With You
 images:
   - chatgpt-image-27-sept-2026-23-43-40-2-67468.webp
 category: fragrances
