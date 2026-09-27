@@ -48,7 +48,7 @@ folder. Those changes are saved into the folder and go live when you push them.
 Each product can also have:
 
 - **Draft (hide from the shop):** save a listing without it appearing anywhere until you switch it off.
-- **Where it's from:** e.g. *Bought on StockX (verified authentic)*, shown as a badge on the product page.
+- **Where it's from:** e.g. *Bought on StockX*, shown under the price on the product page.
 - **Style code / SKU**, **Colourway** and **What's included** (box, StockX tag, receipt…). People can
   search by style code.
 - **Product video:** a short clip (5–15 seconds, MP4, under 20 MB; vertical looks best).

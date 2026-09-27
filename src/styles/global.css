@@ -1013,14 +1013,13 @@ select option {
 }
 
 .hero__tagline,
-.hero__actions,
-.hero__trust {
+.hero__actions {
   justify-content: center;
   margin-inline: auto;
 }
 
 /* Under the reel, the headline animates when it scrolls into view rather than on load. */
-.js .hero:not(.is-in) :is(.hero__pill, .word, .hero__tagline, .hero__actions, .hero__trust) {
+.js .hero:not(.is-in) :is(.hero__pill, .word, .hero__tagline, .hero__actions) {
   animation-play-state: paused;
 }
 
@@ -1107,28 +1106,6 @@ select option {
   .hero__actions .button {
     flex: 0 0 auto;
   }
-}
-
-.hero__trust {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin: 22px 0 0;
-  padding: 0;
-  list-style: none;
-  color: var(--muted);
-  font-size: 0.82rem;
-  animation: rise 0.9s var(--ease) 0.75s both;
-}
-
-.hero__trust li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.hero__trust .icon {
-  color: var(--ok);
 }
 
 /* ==========================================================================
@@ -2132,25 +2109,19 @@ select option {
   color: var(--sold);
 }
 
-.authentic {
+.product__source {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: fit-content;
-  max-width: 100%;
-  margin: 18px 0 0;
-  padding: 10px 16px 10px 12px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, rgb(91 124 255 / 0.2), rgb(155 123 255 / 0.12));
-  box-shadow: inset 0 0 0 1px rgb(143 164 255 / 0.35);
-  color: #e3e9ff;
+  gap: 8px;
+  margin: 16px 0 0;
+  color: var(--muted);
   font-size: 0.86rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.authentic svg {
+.product__source svg {
   flex: none;
-  color: var(--ok);
+  color: var(--accent);
 }
 
 .specs {
@@ -3082,7 +3053,6 @@ select option {
   .hero__pill,
   .hero__tagline,
   .hero__actions,
-  .hero__trust,
   .page-head,
   .product__info,
   .not-found,

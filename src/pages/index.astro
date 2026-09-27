@@ -40,7 +40,6 @@ const previewPhoto = reelProducts[0]?.data.images[0];
 const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;
 
 const dm = primaryContact();
-const verifiedCount = inStock.filter((product) => ['stockx', 'goat'].includes(product.data.authenticity ?? '')).length;
 const headingWords = settings.heroHeading.split(/\s+/).filter(Boolean);
 const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
 ---
@@ -104,24 +103,6 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
           )
         }
       </div>
-      <ul class="hero__trust">
-        <li>
-          <Icon name="shield" size={16} />
-          Authentic only
-        </li>
-        {
-          verifiedCount > 0 && (
-            <li>
-              <Icon name="check" size={16} />
-              StockX-verified pieces
-            </li>
-          )
-        }
-        <li>
-          <Icon name="bolt" size={16} />
-          DM to buy
-        </li>
-      </ul>
     </div>
   </section>
 
@@ -246,7 +227,7 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
       <li class="step" data-reveal style="--i:2">
         <span class="step__num gradient-text">03</span>
         <h3>Lock it in</h3>
-        <p>We confirm it's yours and sort out the rest with you. Authentic, every time.</p>
+        <p>We confirm it's yours and sort out the rest with you.</p>
       </li>
     </ol>
   </section>

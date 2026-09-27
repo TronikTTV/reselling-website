@@ -17,13 +17,11 @@ interface Props {
 }
 
 const { product, eager = false, hidden = false, index = 0 } = Astro.props;
-const { title, brand, price, retailPrice, status, size, condition, tags, date, images, styleCode, colourway, authenticity } =
-  product.data;
+const { title, brand, price, retailPrice, status, size, condition, tags, date, images, styleCode, colourway } = product.data;
 const category = categoryOf(product);
 const photo = images[0] ? await productPhoto(images[0]) : undefined;
 const priceText = formatPrice(price);
 const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
-const verified = status === 'available' && (authenticity === 'stockx' || authenticity === 'goat');
 // The data-* attributes on <article> are read by ProductBrowser's filter script, and data-vt-link /
 // data-vt-photo by the page-transition script in BaseLayout. Keep them whatever the card looks like.
 ---
@@ -64,14 +62,6 @@ const verified = status === 'available' && (authenticity === 'stockx' || authent
       }
       <div class="card__badges">
         {status !== 'available' && <span class:list={['badge', `badge--${status}`]}>{STATUS_LABELS[status]}</span>}
-        {
-          verified && (
-            <span class="badge">
-              <Icon name="check" size={12} />
-              Verified
-            </span>
-          )
-        }
       </div>
       <span class="card__cta" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
     </div>

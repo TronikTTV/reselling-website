@@ -7,7 +7,7 @@ interface Props {
   items: string[];
 }
 
-const phrases = Astro.props.items.length > 0 ? Astro.props.items : ['Authentic only', 'DM to cop', 'Fresh drops'];
+const phrases = Astro.props.items.length > 0 ? Astro.props.items : ['Fresh drops', 'DM to cop', 'Hand-picked'];
 // Repeat short lists so one copy is always wider than the screen, then show it twice for a seamless loop.
 const run = Array.from({ length: Math.max(1, Math.ceil(8 / phrases.length)) }, () => phrases).flat();
 ---

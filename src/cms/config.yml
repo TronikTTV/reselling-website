@@ -165,10 +165,10 @@ collections:
         label: Where it's from
         widget: select
         required: false
-        hint: Shown on the product page as a proof-of-authenticity line.
+        hint: Shown on the product page, e.g. "Bought on StockX".
         options:
-          - { label: 'Bought on StockX (verified authentic)', value: stockx }
-          - { label: 'Bought on GOAT (verified authentic)', value: goat }
+          - { label: Bought on StockX, value: stockx }
+          - { label: Bought on GOAT, value: goat }
           - { label: Bought from an official retailer, value: retailer }
           - { label: Bought direct from the brand, value: brand }
       - name: styleCode
@@ -249,7 +249,7 @@ collections:
             label: Scrolling ticker
             widget: list
             required: false
-            hint: Short phrases that scroll across the home page, e.g. "Authentic only", "DM to cop".
+            hint: Short phrases that scroll across the home page, e.g. "Fresh drops", "DM to cop".
           - name: currency
             label: Currency
             widget: select

@@ -36,8 +36,8 @@ export const STATUS_LABELS: Record<Status, string> = {
 
 // Where an item was bought, chosen in the admin page (the "Where it's from" field).
 export const AUTHENTICITY_LABELS: Record<string, string> = {
-  stockx: 'Bought on StockX, verified authentic',
-  goat: 'Bought on GOAT, verified authentic',
+  stockx: 'Bought on StockX',
+  goat: 'Bought on GOAT',
   retailer: 'Bought from an official retailer',
   brand: 'Bought direct from the brand',
 };
