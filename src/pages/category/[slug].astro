@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Icon from '../../components/Icon.astro';
 import ProductBrowser from '../../components/ProductBrowser.astro';
 import { categoryOf, getCategorySummaries, getListedProducts, type CategorySummary } from '../../lib/catalog';
 import { pluralise } from '../../lib/format';
@@ -18,18 +19,29 @@ const { category, cover } = Astro.props.summary;
 const products = (await getListedProducts()).filter((product) => categoryOf(product).slug === category.slug);
 const previewPhoto = cover?.data.images[0];
 const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;
+
+// The last word of the name gets the italic accent: "Hats & Caps" → "Hats & *Caps*".
+const words = category.name.split(/\s+/);
+const lead = words.slice(0, -1).join(' ');
+const accent = words[words.length - 1];
 ---
 
 <BaseLayout
   title={category.name}
-  description={category.description || `${pluralise(products.length, 'item')} in ${category.name}.`}
+  description={category.description || `${pluralise(products.length, 'piece')} in ${category.name}.`}
   image={preview}
   currentCategory={category.slug}
 >
   <div class="container">
     <header class="page-head">
-      <h1 class="page-head__title">{category.name}</h1>
-      {category.description && <p class="page-head__desc">{category.description}</p>}
+      <p class="eyebrow">
+        <Icon name="spark" size={14} />
+        {pluralise(products.length, 'piece')}
+      </p>
+      <h1 class="page-head__title">
+        {lead && `${lead} `}<em>{accent}</em>
+      </h1>
+      <p class="page-head__desc">{category.description || `Authentic ${category.name.toLowerCase()}, hand-picked. Tap any piece for photos, sizes and price.`}</p>
     </header>
     <ProductBrowser products={products} />
   </div>

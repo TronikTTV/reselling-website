@@ -4,7 +4,7 @@
 // in the page; the script below just hides, shows and re-orders the cards,
 // and keeps the address bar in sync so filtered views can be shared.
 import ProductCard from './ProductCard.astro';
-import SearchIcon from './SearchIcon.astro';
+import Icon from './Icon.astro';
 import type { CategorySummary, Product } from '../lib/catalog';
 import { pluralise } from '../lib/format';
 import { normalise } from '../lib/search';
@@ -46,16 +46,17 @@ const hasSold = products.some((product) => product.data.status === 'sold');
   {
     products.length === 0 ? (
       <div class="empty">
-        <p>Nothing here yet. Check back soon!</p>
+        <p>Nothing here yet. Fresh pieces are on the way.</p>
       </div>
     ) : (
       <>
         <form class="browser__controls" data-controls role="search">
           <label class="browser__search search-field">
             <span class="visually-hidden">Search</span>
-            <SearchIcon />
-            <input class="field" type="search" name="q" placeholder="Search by name, brand, size…" autocomplete="off" enterkeyhint="search" />
+            <Icon name="search" />
+            <input class="field" type="search" name="q" placeholder="Search brand, style code, size…" autocomplete="off" enterkeyhint="search" />
           </label>
+          <div class="browser__filters">
           {categoryOptions.length > 1 && (
             <select class="field" name="category" aria-label="Category">
               <option value="">All categories</option>
@@ -84,6 +85,7 @@ const hasSold = products.some((product) => product.data.status === 'sold');
               Hide sold
             </label>
           )}
+          </div>
         </form>
 
         <div class="browser__meta">
@@ -93,12 +95,12 @@ const hasSold = products.some((product) => product.data.status === 'sold');
 
         <div class="product-grid" data-grid>
           {products.map((product, index) => (
-            <ProductCard product={product} eager={index < 4} hidden={index >= PAGE_SIZE} />
+            <ProductCard product={product} eager={index < 4} hidden={index >= PAGE_SIZE} index={index} />
           ))}
         </div>
 
         <div class="empty" data-empty hidden>
-          <p>Nothing matches that search.</p>
+          <p>No pieces match that. Try another search.</p>
           <button type="button" class="link-button" data-clear>Clear filters</button>
         </div>
 

@@ -1,6 +1,15 @@
 {
   "siteName": "Central Supply",
-  "tagline": "Watches, clothing, fragrances and more. New stock added all the time.",
+  "tagline": "Authentic sneakers, streetwear and more. Hand-picked, verified and one DM away.",
+  "heroHeading": "Rare finds.",
+  "heroAccent": "Real ones only.",
+  "ticker": [
+    "Authentic only",
+    "DM to cop",
+    "Fresh drops",
+    "Hand-picked",
+    "StockX-verified pieces"
+  ],
   "announcement": "",
   "currency": "GBP",
   "hideSoldItems": false,

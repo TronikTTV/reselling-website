@@ -1,0 +1,257 @@
+---
+// Story-style product ads at the top of the home page, like TikTok and Instagram stories.
+// Each slide plays the product's video (muted and looping) or, without one, slowly zooms
+// through its photo. Slides advance by themselves; tap the right or left side to skip or go back,
+// and press and hold to pause. Only the slide on screen ever plays.
+import Icon from './Icon.astro';
+import type { Product } from '../lib/catalog';
+import type { ContactLink } from '../lib/contact';
+import type { ProductPhoto } from '../lib/images';
+import { categoryOf } from '../lib/catalog';
+import { formatPrice } from '../lib/format';
+import { productUrl } from '../lib/url';
+
+export interface Ad {
+  product: Product;
+  photo: ProductPhoto;
+  video?: string;
+}
+
+interface Props {
+  ads: Ad[];
+  dm?: ContactLink;
+}
+
+const { ads, dm } = Astro.props;
+const hasVideo = ads.some((ad) => ad.video);
+---
+
+<section class="reel" data-reel aria-roledescription="carousel" aria-label="Featured drops">
+  <div class="reel__slides">
+    {
+      ads.map(({ product, photo, video }, index) => {
+        const { title, brand, price, size, condition } = product.data;
+        const meta = [formatPrice(price) ?? 'Ask for price', size, condition].filter(Boolean).join(' · ');
+        return (
+          <article
+            class:list={['reel__slide', index === 0 && 'is-active']}
+            data-reel-slide
+            aria-roledescription="slide"
+            aria-label={`${index + 1} of ${ads.length}: ${title}`}
+            aria-hidden={index === 0 ? undefined : 'true'}
+          >
+            {video ? (
+              <video
+                class="reel__media"
+                src={video}
+                poster={photo.src}
+                muted
+                loop
+                playsinline
+                autoplay={index === 0}
+                preload={index === 0 ? 'auto' : 'none'}
+                data-reel-video
+                aria-hidden="true"
+              />
+            ) : (
+              <img
+                class="reel__media reel__photo"
+                src={photo.src}
+                srcset={photo.srcset}
+                sizes="100vw"
+                width={photo.width}
+                height={photo.height}
+                alt=""
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchpriority={index === 0 ? 'high' : 'auto'}
+                decoding="async"
+              />
+            )}
+            <div class="reel__content">
+              <p class="reel__eyebrow">
+                <span class="live-dot" aria-hidden="true" />
+                {brand || categoryOf(product).name}
+              </p>
+              <p class="reel__title">{title}</p>
+              <p class="reel__meta">{meta}</p>
+              <div class="reel__actions">
+                <a class="button button--lg" href={productUrl(product.id)} tabindex={index === 0 ? undefined : -1}>
+                  Shop now
+                  <Icon name="arrow-right" />
+                </a>
+                {dm && (
+                  <a
+                    class="button button--ghost button--lg"
+                    href={dm.href}
+                    target={dm.external ? '_blank' : undefined}
+                    rel={dm.external ? 'noopener' : undefined}
+                    tabindex={index === 0 ? undefined : -1}
+                  >
+                    <Icon name={dm.key === 'instagram' ? 'instagram' : 'arrow-up-right'} />
+                    DM to cop
+                  </a>
+                )}
+              </div>
+            </div>
+          </article>
+        );
+      })
+    }
+  </div>
+
+  {
+    ads.length > 1 && (
+      <div class="reel__progress">
+        {ads.map((ad, index) => (
+          <button type="button" class:list={['reel__bar', index === 0 && 'is-active']} data-reel-go={index} aria-label={`Show ${ad.product.data.title}`}>
+            <span class="reel__track">
+              <span class="reel__fill" />
+            </span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  {
+    hasVideo && (
+      <button type="button" class="reel__sound" data-reel-sound aria-label="Turn sound on" aria-pressed="false">
+        <Icon name="sound-off" class="reel__sound-off" />
+        <Icon name="sound-on" class="reel__sound-on" />
+      </button>
+    )
+  }
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-reel]').forEach((reel) => {
+    const slides = Array.from(reel.querySelectorAll<HTMLElement>('[data-reel-slide]'));
+    const bars = Array.from(reel.querySelectorAll<HTMLElement>('[data-reel-go]'));
+    const soundButton = reel.querySelector<HTMLButtonElement>('[data-reel-sound]');
+    let current = 0;
+    let muted = true;
+    let held = false;
+    let hovering = false;
+    let focused = false;
+    let onScreen = true;
+
+    const videoOf = (index: number) => slides[index]?.querySelector<HTMLVideoElement>('[data-reel-video]');
+
+    // Play only the slide on screen (and only while the reel is visible and not held).
+    const sync = () => {
+      const paused = held || hovering || focused || !onScreen || document.hidden;
+      reel.classList.toggle('is-paused', paused);
+      slides.forEach((_, index) => {
+        const video = videoOf(index);
+        if (!video) return;
+        video.muted = muted;
+        if (index === current && !paused) video.play().catch(() => {});
+        else video.pause();
+      });
+      if (soundButton) {
+        soundButton.hidden = !videoOf(current);
+        soundButton.setAttribute('aria-pressed', String(!muted));
+        soundButton.setAttribute('aria-label', muted ? 'Turn sound on' : 'Turn sound off');
+        reel.classList.toggle('has-sound', !muted);
+      }
+    };
+
+    const show = (index: number) => {
+      const next = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('is-active', i === next);
+        if (i === next) slide.removeAttribute('aria-hidden');
+        else slide.setAttribute('aria-hidden', 'true');
+        slide.querySelectorAll('a').forEach((link) => (i === next ? link.removeAttribute('tabindex') : link.setAttribute('tabindex', '-1')));
+      });
+      bars.forEach((bar, i) => {
+        bar.classList.remove('is-active');
+        bar.classList.toggle('is-done', i < next);
+      });
+      // Restart the progress animation on the new bar.
+      const bar = bars[next];
+      if (bar) {
+        void bar.offsetWidth;
+        bar.classList.add('is-active');
+      }
+      const video = videoOf(next);
+      if (video) {
+        video.preload = 'auto';
+        video.currentTime = 0;
+      }
+      current = next;
+      sync();
+    };
+
+    // Each progress bar fills up; when it's full, move on to the next slide.
+    reel.addEventListener('animationend', (event) => {
+      if (event.target instanceof Element && event.target.closest('.reel__bar.is-active')) show(current + 1);
+    });
+
+    // Hold still while someone is reading it with a mouse over it, or moving through it with the keyboard.
+    reel.addEventListener('pointerenter', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      hovering = true;
+      sync();
+    });
+    reel.addEventListener('focusin', () => {
+      focused = true;
+      sync();
+    });
+    reel.addEventListener('focusout', (event) => {
+      if (event.relatedTarget instanceof Node && reel.contains(event.relatedTarget)) return;
+      focused = false;
+      sync();
+    });
+    bars.forEach((bar) => bar.addEventListener('click', () => show(Number(bar.dataset.reelGo))));
+
+    soundButton?.addEventListener('click', () => {
+      muted = !muted;
+      sync();
+    });
+
+    // Tap the left third to go back, anywhere else to skip; press and hold to pause.
+    let pressStart = 0;
+    let pressX = 0;
+    let pressY = 0;
+    const isControl = (target: EventTarget | null) => target instanceof Element && Boolean(target.closest('a, button'));
+    reel.addEventListener('pointerdown', (event) => {
+      if (isControl(event.target) || event.button !== 0) return;
+      pressStart = Date.now();
+      pressX = event.clientX;
+      pressY = event.clientY;
+      held = true;
+      sync();
+    });
+    const release = (event: PointerEvent, cancelled: boolean) => {
+      if (!held) return;
+      held = false;
+      const moved = Math.hypot(event.clientX - pressX, event.clientY - pressY) > 12;
+      if (!cancelled && !moved && Date.now() - pressStart < 280 && slides.length > 1) {
+        const box = reel.getBoundingClientRect();
+        show(event.clientX - box.left < box.width / 3 ? current - 1 : current + 1);
+      } else {
+        sync();
+      }
+    };
+    reel.addEventListener('pointerup', (event) => release(event, false));
+    reel.addEventListener('pointercancel', (event) => release(event, true));
+    reel.addEventListener('pointerleave', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      hovering = false;
+      release(event, true);
+      sync();
+    });
+
+    // Pause while scrolled away or while the tab is in the background.
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+        sync();
+      }, { threshold: 0.2 }).observe(reel);
+    }
+    document.addEventListener('visibilitychange', sync);
+
+    sync();
+  });
+</script>

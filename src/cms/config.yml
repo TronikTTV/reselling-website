@@ -35,6 +35,8 @@ public_folder: /src/assets/uploads
 media_libraries:
   default:
     config:
+      # Cloudflare Pages rejects files over 25 MiB, which would stop the whole site updating.
+      max_file_size: 24000000
       slugify_filename: true
       transformations:
         raster_image:
@@ -103,6 +105,12 @@ collections:
         multiple: true
         min: 1
         hint: The first photo is the cover. Drag to reorder. Photos are shrunk automatically.
+      - name: video
+        label: Product video (optional)
+        widget: file
+        required: false
+        accept: video/mp4,video/webm,video/quicktime
+        hint: 'A short clip (5–15 seconds). Featured products with a video play as an ad at the top of the home page. Use an MP4 under 20 MB (e.g. exported from CapCut or TikTok at 720p); vertical 9:16 looks best on phones.'
       - name: category
         label: Category
         widget: relation
@@ -231,12 +239,17 @@ collections:
             label: Home page heading
             widget: string
             required: false
-            hint: 'First line of the large home page heading. Default: Good finds.'
+            hint: 'First line of the large home page heading. Default: Rare finds.'
           - name: heroAccent
             label: Home page second line
             widget: string
             required: false
-            hint: 'Second line of the home page heading. Default: Your next favourite.'
+            hint: 'Second line of the home page heading, shown in italics. Default: Real ones only.'
+          - name: ticker
+            label: Scrolling ticker
+            widget: list
+            required: false
+            hint: Short phrases that scroll across the home page, e.g. "Authentic only", "DM to cop".
           - name: currency
             label: Currency
             widget: select

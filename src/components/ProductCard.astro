@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 import { categoryOf, type Product } from '../lib/catalog';
 import { formatPrice, STATUS_LABELS } from '../lib/format';
 import { productPhoto } from '../lib/images';
@@ -11,20 +12,22 @@ interface Props {
   eager?: boolean;
   /** Start hidden (ProductBrowser reveals cards in batches). */
   hidden?: boolean;
+  /** Position in its row, used to stagger the slide-in animation. */
+  index?: number;
 }
 
-const { product, eager = false, hidden = false } = Astro.props;
-const { title, brand, price, retailPrice, status, size, condition, tags, date, images, styleCode, colourway } = product.data;
+const { product, eager = false, hidden = false, index = 0 } = Astro.props;
+const { title, brand, price, retailPrice, status, size, condition, tags, date, images, styleCode, colourway, authenticity } =
+  product.data;
 const category = categoryOf(product);
 const photo = images[0] ? await productPhoto(images[0]) : undefined;
 const priceText = formatPrice(price);
 const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
+const verified = status === 'available' && (authenticity === 'stockx' || authenticity === 'goat');
+// The data-* attributes on <article> are read by ProductBrowser's filter script, and data-vt-link /
+// data-vt-photo by the page-transition script in BaseLayout. Keep them whatever the card looks like.
 ---
 
-<!--
-  The data-* attributes below are read by ProductBrowser's filter script.
-  Keep them on the card's outer element whatever the card ends up looking like.
--->
 <article
   class:list={['card', `card--${status}`]}
   data-product
@@ -36,35 +39,52 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
   data-date={date?.getTime() ?? 0}
   data-title={normalise(title)}
   hidden={hidden}
+  data-reveal
+  style={`--i:${index % 4}`}
 >
-  <a class="card__link" href={productUrl(product.id)}>
+  <a class="card__link" href={productUrl(product.id)} data-vt-link>
     <div class="card__media">
       {!photo && <span class="card__placeholder">Photos coming soon</span>}
       {
         photo && (
           <img
+            class="card__img"
             src={photo.src}
             srcset={photo.srcset}
-            sizes="(min-width: 1240px) 290px, (min-width: 1000px) 23vw, (min-width: 700px) 31vw, 48vw"
+            sizes="(min-width: 1320px) 300px, (min-width: 1100px) 23vw, (min-width: 700px) 31vw, 48vw"
             width={photo.width}
             height={photo.height}
             alt={title}
             loading={eager ? 'eager' : 'lazy'}
             decoding="async"
+            data-vt-photo
+            data-fade
           />
         )
       }
-      {status !== 'available' && <span class:list={['badge', `badge--${status}`]}>{STATUS_LABELS[status]}</span>}
-      <span class="card__view" aria-hidden="true">↗</span>
+      <div class="card__badges">
+        {status !== 'available' && <span class:list={['badge', `badge--${status}`]}>{STATUS_LABELS[status]}</span>}
+        {
+          verified && (
+            <span class="badge">
+              <Icon name="check" size={12} />
+              Verified
+            </span>
+          )
+        }
+      </div>
+      <span class="card__cta" aria-hidden="true"><Icon name="arrow-up-right" size={16} /></span>
     </div>
     <div class="card__body">
       <p class="card__brand">{brand || category.name}</p>
       <h3 class="card__title">{title}</h3>
-      <p class="card__price">
-        {priceText ? <span>{priceText}</span> : <span class="card__ask">Ask for price</span>}
-        {showRetail && <s class="rrp">{formatPrice(retailPrice)}</s>}
-      </p>
-      {(size || condition) && <p class="card__detail">{[size, condition].filter(Boolean).join(' · ')}</p>}
+      <div class="card__foot">
+        <p class="card__price">
+          {priceText ? <span>{priceText}</span> : <span class="card__ask">Ask for price</span>}
+          {showRetail && <s class="rrp">{formatPrice(retailPrice)}</s>}
+        </p>
+        {size && <span class="card__size">{size}</span>}
+      </div>
     </div>
   </a>
 </article>

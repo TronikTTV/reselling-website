@@ -71,6 +71,9 @@ const products = defineCollection({
         const date = value instanceof Date ? value : new Date(String(value));
         return Number.isNaN(date.getTime()) ? undefined : date;
       }, z.date().optional()),
+      // Optional short video (file name in the product's folder). Featured products with one
+      // play as an ad at the top of the home page; see src/lib/videos.ts.
+      video: optionalText,
       // Photo file names relative to the product's folder. The first one is the cover.
       images: z.preprocess((value) => {
         const list = Array.isArray(value) ? value : [value];

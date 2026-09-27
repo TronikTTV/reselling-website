@@ -33,7 +33,7 @@ export function contactLinks(product?: { title: string; url: string }): ContactL
     const name = handle(instagram);
     links.push({
       key: 'instagram',
-      label: product ? 'Message on Instagram' : 'Instagram',
+      label: product ? 'DM to cop on Instagram' : 'Instagram',
       href: product ? `https://ig.me/m/${name}` : `https://www.instagram.com/${name}/`,
       external: true,
     });
@@ -60,3 +60,18 @@ export function contactLinks(product?: { title: string; url: string }): ContactL
   }
   return links;
 }
+
+/**
+ * The quickest way to message the seller about anything (for "DM to cop" buttons): an Instagram
+ * DM if there is one, otherwise the first other contact method.
+ */
+export function primaryContact(): ContactLink | undefined {
+  const { instagram } = settings.contact;
+  if (instagram) {
+    return { key: 'instagram', label: 'DM to cop', href: `https://ig.me/m/${handle(instagram)}`, external: true };
+  }
+  return contactLinks()[0];
+}
+
+/** "@centralsupply.uk" style label for the Instagram account, if there is one. */
+export const instagramHandle = () => (settings.contact.instagram ? `@${handle(settings.contact.instagram)}` : undefined);

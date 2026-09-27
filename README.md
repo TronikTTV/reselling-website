@@ -51,6 +51,25 @@ Each product can also have:
 - **Where it's from:** e.g. *Bought on StockX (verified authentic)*, shown as a badge on the product page.
 - **Style code / SKU**, **Colourway** and **What's included** (box, StockX tag, receipt…). People can
   search by style code.
+- **Product video:** a short clip (5–15 seconds, MP4, under 20 MB; vertical looks best).
+
+### Video ads at the top of the home page
+
+The top of the home page plays your **featured** products like stories: full screen, muted,
+looping, with progress bars. Visitors can tap to skip, hold to pause and turn the sound on. Products
+with a video play first. Products without one get a slow cinematic zoom on their photo instead, so it
+works even before you've filmed anything.
+
+To add one: open the product, switch on **Feature on the home page**, add a **Product video** if you
+have one, and save. Keep clips short and small; CapCut or TikTok's "save video" at 720p works well.
+iPhone camera files can be too big, and some Android phones can't play iPhone's HEVC format, so export
+them as MP4 first.
+
+The rest of the home page is the scrolling ticker (edit its phrases in **Settings → Store settings →
+Scrolling ticker**), your headline, the newest pieces, categories and "How it works". It all animates
+in as you scroll. If your own computer has animation effects turned off (Windows **Settings →
+Accessibility → Visual effects**), you'll see a calmer version with fades only. Phones show the full
+motion.
 
 Tips:
 
@@ -141,10 +160,12 @@ Start with a small batch to check the source before importing thousands.
 
 ## Design and checking changes
 
-The storefront uses an off-white and olive palette, a featured-product spotlight, horizontally
-scrollable categories, full-photo cards, and reduced-motion-aware transitions. Change the homepage
-heading in **Settings → Store settings**; the spotlight follows your featured products automatically.
-Existing product photos and listings are kept intact.
+The storefront is dark and premium: near-black with slow aurora glows and film grain, Geist and
+Instrument Serif italic type, glass panels, electric-blue gradients, the story-style ad reel, a tilted
+ticker, swipe rows, a bento category grid, and page transitions where a product's photo flies into
+its page. Change the headline, tagline and ticker in **Settings → Store settings**; the reel follows
+your featured products automatically. All colours and fonts are set at the top of
+`src/styles/global.css`.
 
 Run `npm run check`, `npm run build`, and `npm run test:import` before publishing. Check phone and
 desktop browsing, filters, sorting, galleries and sharing. No deployment or GitHub connection is

@@ -32,9 +32,9 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 
 | Path | What it is |
 | --- | --- |
-| `src/styles/global.css` | All styling. Design tokens (colours, fonts, radii, widths) are at the top in `:root`. Start here. |
+| `src/styles/global.css` | All styling. Design tokens (colours, gradients, fonts, radii, easing) are at the top in `:root`. Start here. Fonts are Geist Variable and Instrument Serif italic from `@fontsource`, imported in `BaseLayout.astro`. |
 | `src/layouts/BaseLayout.astro` | `<html>`/`<head>`, meta and link-preview tags, header and footer. |
-| `src/components/` | `Header`, `Footer`, `ProductCard`, `ProductBrowser` (search/filter/sort + grid), `Gallery` (photos + full-screen viewer), `CategoryTiles`, `ShareButton`, `SearchIcon`. |
+| `src/components/` | `Header` (with the search sheet), `Footer`, `AdReel` (story-style video/photo ads at the top of the home page), `Marquee` (ticker), `ProductRail` (swipe row), `ProductCard`, `ProductBrowser` (search/filter/sort + grid), `Gallery` (photos + full-screen viewer), `CategoryTiles` (bento grid), `ShareButton`, `Icon` (all icons). |
 | `src/pages/` | `index` (home), `shop` (all products), `category/[slug]`, `product/[slug]`, `manage` (owner dashboard: stock counts, "needs attention", editor shortcuts), `404`, `admin/` (the CMS: don't touch). |
 | `src/lib/` | `catalog.ts` (loading and sorting products), `site.ts` (settings and categories), `images.ts` (photo sizes), `url.ts` (links), `format.ts` (prices), `contact.ts` (message links), `search.ts`. |
 | `src/content/products/<slug>/index.md` | One folder per product: front matter + description, with its photos next to it. Written by the CMS. |
@@ -51,7 +51,8 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 2. **Product data belongs to the CMS.** Don't rename, remove or change the meaning of the front-matter
    fields: `title`, `images`, `category`, `brand`, `price`, `retailPrice`, `status`
    (`available`/`reserved`/`sold`), `size`, `condition`, `featured`, `draft`, `styleCode`, `colourway`,
-   `includes`, `authenticity` (a key from `AUTHENTICITY_LABELS` in `src/lib/format.ts`), `tags`, `date`,
+   `includes`, `authenticity` (a key from `AUTHENTICITY_LABELS` in `src/lib/format.ts`), `video` (a file in the
+   product's folder, resolved by `productVideo()` in `src/lib/videos.ts`), `tags`, `date`,
    plus the Markdown body (the description). A new field must be optional and added to both
    `src/content.config.ts` and `src/cms/config.yml`. Don't edit or delete products unless asked. The
    `example-*` products are placeholders that the owner will delete.
@@ -67,6 +68,14 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
    - `Gallery`: `[data-gallery]`, `[data-track]`, `[data-slide]`, `[data-thumb]`, `[data-counter]`,
      `[data-lightbox]`, `[data-lightbox-track]`, `[data-close]`, `[data-step]`.
    - `ShareButton`: `[data-share]`, `[data-share-label]`.
+   - `AdReel`: `[data-reel]`, `[data-reel-slide]` (+ `.is-active`), `[data-reel-video]`, `[data-reel-go]`,
+     `[data-reel-sound]`. The active progress bar's CSS animation (`.reel__bar.is-active .reel__fill`)
+     is what advances the slides: its `animationend` event moves to the next one.
+   - Site-wide (`BaseLayout.astro` script): `[data-reveal]` (gets `.is-in` when scrolled into view),
+     `img[data-fade]` (gets `.is-loaded`), `[data-header]` (gets `data-scrolled` / `data-hidden`),
+     `[data-search-sheet]` with `[data-open-search]` / `[data-close-search]`, and `a[data-vt-link]` containing
+     `[data-vt-photo]` for the photo that flies into the product page (view transition name `product-photo`;
+     only one element may have it at a time). Product page: `[data-main-cta]` and `[data-buy-bar]`.
 4. **Photos.** Get product photo URLs from `productPhoto()` and `sharePreview()` in `src/lib/images.ts`.
    Don't request new sizes with `<Image>`/`<Picture>`: every extra size is generated for every photo,
    which slows builds and grows the published site (Cloudflare Pages allows 20,000 files per site). Keep decorative images
@@ -75,15 +84,20 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
    client-side JavaScript small and vanilla (Astro `<script>` tags), with no UI frameworks just for
    decoration. Self-host fonts (`@fontsource/*` packages or Astro's font support) instead of loading
    third-party CSS/JS from CDNs.
-6. **Mobile first.** Most visitors open shared links on phones. Check 375px wide as well as desktop,
+6. **Motion.** The site is meant to feel alive (the owner asked for lots of clean animation), but
+   it's kept to `transform`/`opacity` so it stays smooth in TikTok's in-app browser. Under
+   `prefers-reduced-motion: reduce` (the owner's own PC has Windows animation effects switched off) keep
+   fades, crossfades and colour, and drop sliding, zooming and auto-scrolling: see the last block of
+   `global.css`. Check both settings.
+7. **Mobile first.** Most visitors open shared links on phones. Check 375px wide as well as desktop,
    keep tap targets at least 44px, and keep the photos front and centre.
-7. **Leave alone** `.github/workflows/deploy.yml`, `src/pages/admin/` and the `site`/`base` lines in
+8. **Leave alone** `.github/workflows/deploy.yml`, `src/pages/admin/` and the `site`/`base` lines in
    `astro.config.mjs` unless the owner asks.
-8. **Astro 7 notes.** The compiler is strict about HTML: close every tag, and invalid nesting isn't
+9. **Astro 7 notes.** The compiler is strict about HTML: close every tag, and invalid nesting isn't
    auto-corrected. Whitespace between elements on separate lines is removed (`compressHTML: 'jsx'`),
    so use CSS gaps/margins or `{' '}` for spacing. Zod is v4, imported from `astro/zod`. Use
    `render(entry)` from `astro:content`; entries have `id`, not `slug`.
-9. **Design for real stock, not the placeholders.** Expect mixed photo shapes and busy backgrounds,
+10. **Design for real stock, not the placeholders.** Expect mixed photo shapes and busy backgrounds,
    1–10 photos per product, long titles, missing prices ("Ask for price"), missing brands, sold and
    reserved badges, empty categories, and stores with 1,000+ products (the browser reveals cards 48 at
    a time).

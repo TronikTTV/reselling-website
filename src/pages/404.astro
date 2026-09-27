@@ -1,12 +1,20 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { shopUrl } from '../lib/url';
+import Icon from '../components/Icon.astro';
+import { shopUrl, url } from '../lib/url';
 ---
 
-<BaseLayout title="Page not found">
+<BaseLayout title="Page not found" noindex>
   <div class="container not-found">
-    <h1 class="page-head__title">Page not found</h1>
-    <p class="page-head__desc" style="margin-inline: auto">That item may have been removed. Have a look at everything else instead.</p>
-    <a class="button" href={shopUrl()}>Browse all products</a>
+    <p class="not-found__code gradient-text">404</p>
+    <h1 class="page-head__title">Gone <em>missing.</em></h1>
+    <p>That page doesn't exist, or the piece has moved on. There's plenty more where it came from.</p>
+    <div class="not-found__actions">
+      <a class="button button--accent button--lg" href={shopUrl()}>
+        Shop everything
+        <Icon name="arrow-right" />
+      </a>
+      <a class="button button--ghost button--lg" href={url('/')}>Back home</a>
+    </div>
   </div>
 </BaseLayout>

@@ -14,6 +14,8 @@
     "test:import": "node --test scripts/import-web.test.mjs scripts/supplier-parsers.test.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "astro": "^7.3.3",
     "parse5": "^8.0.1",
     "sharp": "^0.35.4"

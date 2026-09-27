@@ -2,10 +2,11 @@
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Gallery from '../../components/Gallery.astro';
-import ProductCard from '../../components/ProductCard.astro';
+import Icon from '../../components/Icon.astro';
+import ProductRail from '../../components/ProductRail.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import { categoryOf, getAllProducts, getListedProducts, type Product } from '../../lib/catalog';
-import { contactLinks } from '../../lib/contact';
+import { contactLinks, type ContactLink } from '../../lib/contact';
 import { authenticityLabel, formatPrice, STATUS_LABELS } from '../../lib/format';
 import { sharePreview } from '../../lib/images';
 import { normalise } from '../../lib/search';
@@ -33,21 +34,41 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
 
 const pageUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const contacts = status === 'sold' ? [] : contactLinks({ title, url: pageUrl });
+const mainContact = contacts[0];
 const preview = images[0] ? await sharePreview(images[0]) : undefined;
 const description = [priceText, brand, size && `Size ${size}`, condition, styleCode, status !== 'available' && STATUS_LABELS[status]]
   .filter(Boolean)
   .join(' · ');
 
-const related = (await getListedProducts())
-  .filter((other) => other.id !== product.id && other.data.status !== 'sold' && categoryOf(other).slug === category.slug)
-  .slice(0, 8);
+const iconFor = (key: ContactLink['key']) =>
+  key === 'instagram' ? 'instagram' : key === 'whatsapp' ? 'whatsapp' : key === 'email' ? 'mail' : 'arrow-up-right';
+
+// "You might also like": same category first, topped up with other pieces in stock.
+const listed = (await getListedProducts()).filter((other) => other.id !== product.id && other.data.status !== 'sold');
+const related = [
+  ...listed.filter((other) => categoryOf(other).slug === category.slug),
+  ...listed.filter((other) => categoryOf(other).slug !== category.slug),
+].slice(0, 10);
+
+const specs = [
+  size && { label: 'Size', value: size },
+  condition && { label: 'Condition', value: condition },
+  colourway && { label: 'Colourway', value: colourway },
+  styleCode && { label: 'Style code', value: styleCode },
+].filter((spec): spec is { label: string; value: string } => Boolean(spec));
 ---
 
-<BaseLayout title={title} description={description || undefined} image={preview} currentCategory={category.slug}>
+<BaseLayout
+  title={title}
+  description={description || undefined}
+  image={preview}
+  currentCategory={category.slug}
+  bodyClass={mainContact ? 'has-buy-bar' : undefined}
+>
   <div class="container">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
       <a href={url('/')}>Home</a>
-      <span aria-hidden="true">/</span>
+      <Icon name="chevron-right" size={14} />
       <a href={categoryUrl(category.slug)}>{category.name}</a>
     </nav>
 
@@ -55,81 +76,60 @@ const related = (await getListedProducts())
       <Gallery images={images} alt={title} />
 
       <div class="product__info">
-        {brand && <p class="product__brand">{brand}</p>}
+        <p class="product__brand">{brand || category.name}</p>
         <h1 class="product__title">{title}</h1>
-        <p class="product__price">
-          <span>{priceText ?? 'Ask for price'}</span>
-          {showRetail && <s class="rrp">{`RRP ${formatPrice(retailPrice)}`}</s>}
-        </p>
-        <p class:list={['status', `status--${status}`]}>{STATUS_LABELS[status]}</p>
+
+        <div class="product__price-row">
+          <p class="product__price">
+            <span>{priceText ?? 'Ask for price'}</span>
+            {showRetail && <s class="rrp">{`RRP ${formatPrice(retailPrice)}`}</s>}
+          </p>
+          <p class:list={['status', `status--${status}`]}>{STATUS_LABELS[status]}</p>
+        </div>
+
         {
           authenticityText && (
             <p class="authentic">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6z"></path>
-                <path d="m9 12 2 2 4-4"></path>
-              </svg>
+              <Icon name="shield" size={18} />
               <span>{authenticityText}</span>
             </p>
           )
         }
 
-        <dl class="details">
+        <dl class="specs">
           {
-            size && (
-              <>
-                <dt>Size</dt>
-                <dd>{size}</dd>
-              </>
-            )
-          }
-          {
-            condition && (
-              <>
-                <dt>Condition</dt>
-                <dd>{condition}</dd>
-              </>
-            )
+            specs.map((spec) => (
+              <div class="spec">
+                <dt>{spec.label}</dt>
+                <dd>{spec.value}</dd>
+              </div>
+            ))
           }
           {
             brand && (
-              <>
+              <div class="spec">
                 <dt>Brand</dt>
                 <dd>
                   <a href={shopUrl({ brand: normalise(brand) })}>{brand}</a>
                 </dd>
-              </>
+              </div>
             )
           }
-          {
-            styleCode && (
-              <>
-                <dt>Style code</dt>
-                <dd>{styleCode}</dd>
-              </>
-            )
-          }
-          {
-            colourway && (
-              <>
-                <dt>Colourway</dt>
-                <dd>{colourway}</dd>
-              </>
-            )
-          }
+          <div class="spec">
+            <dt>Category</dt>
+            <dd><a href={categoryUrl(category.slug)}>{category.name}</a></dd>
+          </div>
           {
             includes.length > 0 && (
-              <>
-                <dt>Included</dt>
-                <dd>{includes.join(', ')}</dd>
-              </>
+              <div class="spec spec--wide">
+                <dt>What's included</dt>
+                <dd>{includes.join(' · ')}</dd>
+              </div>
             )
           }
-          <dt>Category</dt>
-          <dd><a href={categoryUrl(category.slug)}>{category.name}</a></dd>
         </dl>
 
-        <div class="actions">
+        <div class="actions" data-main-cta>
           {
             status === 'sold' ? (
               <p class="notice">
@@ -139,15 +139,16 @@ const related = (await getListedProducts())
             ) : (
               contacts.length > 0 && (
                 <>
-                  <p class="actions__label">{status === 'reserved' ? 'Reserved. Message me to join the queue:' : 'Interested? Message me:'}</p>
+                  <p class="actions__label">{status === 'reserved' ? 'Reserved right now. DM to join the queue:' : 'Want it? Slide into the DMs:'}</p>
                   <div class="contact-buttons">
                     {contacts.map((contact, index) => (
                       <a
-                        class:list={['button', index > 0 && 'button--ghost']}
+                        class:list={['button', 'button--block', index === 0 ? ['button--accent', 'button--lg'] : 'button--ghost']}
                         href={contact.href}
                         target={contact.external ? '_blank' : undefined}
                         rel={contact.external ? 'noopener' : undefined}
                       >
+                        <Icon name={iconFor(contact.key)} />
                         {contact.label}
                       </a>
                     ))}
@@ -156,7 +157,7 @@ const related = (await getListedProducts())
               )
             )
           }
-          {status !== 'sold' && contacts.length === 0 && <p class="notice">Interested? Send me this listing’s link to ask about it.</p>}
+          {status !== 'sold' && contacts.length === 0 && <p class="notice">Interested? Send this listing's link to ask about it.</p>}
           <ShareButton title={title} />
         </div>
 
@@ -181,23 +182,74 @@ const related = (await getListedProducts())
         }
       </div>
     </article>
+  </div>
 
-    {
-      related.length > 0 && (
-        <section class="section">
-          <div class="section__head">
-            <h2 class="section__title">{`More in ${category.name}`}</h2>
+  {
+    related.length > 0 && (
+      <section class="section" aria-labelledby="related-title">
+        <div class="container">
+          <div class="section__head" data-reveal>
+            <div>
+              <p class="eyebrow">
+                <Icon name="spark" size={14} />
+                Keep scrolling
+              </p>
+              <h2 class="section__title" id="related-title">
+                You might also <em>like</em>
+              </h2>
+            </div>
             <a class="section__link" href={categoryUrl(category.slug)}>
-              See all
+              {`More ${category.name}`}
+              <Icon name="arrow-up-right" size={16} />
             </a>
           </div>
-          <div class="product-grid">
-            {related.map((other) => (
-              <ProductCard product={other} />
-            ))}
-          </div>
-        </section>
-      )
-    }
-  </div>
+        </div>
+        <ProductRail products={related} label="You might also like" />
+      </section>
+    )
+  }
+
+  {
+    mainContact && (
+      <div class="buy-bar" data-buy-bar>
+        <div class="buy-bar__info">
+          <p class="buy-bar__title">{title}</p>
+          <p class="buy-bar__price">{priceText ?? 'Ask for price'}</p>
+        </div>
+        <a
+          class="button button--accent"
+          href={mainContact.href}
+          target={mainContact.external ? '_blank' : undefined}
+          rel={mainContact.external ? 'noopener' : undefined}
+        >
+          <Icon name={iconFor(mainContact.key)} size={18} />
+          DM to cop
+        </a>
+      </div>
+    )
+  }
 </BaseLayout>
+
+<script>
+  // Phones: once the main "DM to cop" buttons have scrolled up out of view, a buy bar slides up.
+  // (Checked on scroll rather than with an observer, so a fast fling past the buttons still counts.)
+  const bar = document.querySelector<HTMLElement>('[data-buy-bar]');
+  const mainCta = document.querySelector<HTMLElement>('[data-main-cta]');
+  if (bar && mainCta) {
+    let queued = false;
+    const update = () => {
+      bar.classList.toggle('is-visible', mainCta.getBoundingClientRect().bottom < 0);
+      queued = false;
+    };
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(update);
+      },
+      { passive: true },
+    );
+    update();
+  }
+</script>

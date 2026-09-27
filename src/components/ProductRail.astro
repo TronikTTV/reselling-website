@@ -1,0 +1,26 @@
+---
+// A swipeable row of product cards (home page "heat list", "You might also like").
+import ProductCard from './ProductCard.astro';
+import type { Product } from '../lib/catalog';
+
+interface Props {
+  products: Product[];
+  label: string;
+  /** Load the first couple of photos straight away. */
+  eager?: boolean;
+}
+
+const { products, label, eager = false } = Astro.props;
+---
+
+<div class="rail">
+  <div class="rail__track" role="list" aria-label={label}>
+    {
+      products.map((product, index) => (
+        <div role="listitem">
+          <ProductCard product={product} eager={eager && index < 2} index={index} />
+        </div>
+      ))
+    }
+  </div>
+</div>

@@ -17,6 +17,8 @@ export interface SiteSettings {
   tagline: string;
   heroHeading: string;
   heroAccent: string;
+  /** Short phrases for the scrolling ticker on the home page. */
+  ticker: string[];
   announcement: string;
   currency: string;
   hideSoldItems: boolean;
@@ -49,8 +51,9 @@ const c = (s?.contact ?? {}) as Loose;
 export const settings: SiteSettings = {
   siteName: text(s?.siteName, 'My Store'),
   tagline: text(s?.tagline),
-  heroHeading: text(s?.heroHeading, 'Good finds.'),
-  heroAccent: text(s?.heroAccent, 'Your next favourite.'),
+  heroHeading: text(s?.heroHeading, 'Rare finds.'),
+  heroAccent: text(s?.heroAccent, 'Real ones only.'),
+  ticker: (Array.isArray(s?.ticker) ? (s.ticker as unknown[]) : []).map((item) => text(item)).filter(Boolean),
   announcement: text(s?.announcement),
   currency: text(s?.currency, 'GBP').toUpperCase(),
   hideSoldItems: s?.hideSoldItems === true,

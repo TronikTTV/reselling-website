@@ -1,0 +1,68 @@
+---
+// Small line icons used across the site. Decorative by default (hidden from screen readers);
+// pass `label` when an icon is the only thing inside a button or link.
+interface Props {
+  name:
+    | 'arrow-right'
+    | 'arrow-up-right'
+    | 'search'
+    | 'instagram'
+    | 'whatsapp'
+    | 'mail'
+    | 'check'
+    | 'shield'
+    | 'bolt'
+    | 'spark'
+    | 'close'
+    | 'share'
+    | 'copy'
+    | 'chevron-left'
+    | 'chevron-right'
+    | 'bag'
+    | 'sound-on'
+    | 'sound-off';
+  size?: number;
+  label?: string;
+  class?: string;
+}
+
+const { name, size = 20, label, class: className } = Astro.props;
+
+const paths: Record<Props['name'], string> = {
+  'arrow-right': '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+  'arrow-up-right': '<path d="M7 17 17 7"/><path d="M8 7h9v9"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  instagram:
+    '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r=".9" fill="currentColor" stroke="none"/>',
+  whatsapp:
+    '<path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/><path d="M9.2 9.3c.3 1.9 1.6 3.6 3.6 4.4l1.1-1.1 1.9.9c-.2 1-.9 1.6-1.9 1.6-3.4-.3-6-3-6.3-6.3 0-1 .6-1.7 1.6-1.9l.9 1.9z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6z"/><path d="m9 12 2 2 4-4"/>',
+  bolt: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
+  spark: '<path d="M12 3c.6 4.6 3.4 7.4 8 8-4.6.6-7.4 3.4-8 8-.6-4.6-3.4-7.4-8-8 4.6-.6 7.4-3.4 8-8z"/>',
+  close: '<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
+  share: '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>',
+  copy: '<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h4"/>',
+  'chevron-left': '<path d="m15 5-7 7 7 7"/>',
+  'chevron-right': '<path d="m9 5 7 7-7 7"/>',
+  bag: '<path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+  'sound-on': '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/>',
+  'sound-off': '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5"/><path d="m21 9.5-5 5"/>',
+};
+---
+
+<svg
+  class:list={['icon', className]}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.8"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden={label ? undefined : 'true'}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  focusable="false"><Fragment set:html={paths[name]} /></svg>

@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 import type { CategorySummary } from '../lib/catalog';
 import { pluralise } from '../lib/format';
 import { productPhoto } from '../lib/images';
@@ -9,6 +10,7 @@ interface Props {
 }
 
 // Each tile uses the first photo of the newest unsold product in that category.
+// The first tile is the big one in the bento grid.
 const tiles = await Promise.all(
   Astro.props.summaries.map(async (summary) => {
     const image = summary.cover?.data.images[0];
@@ -19,25 +21,29 @@ const tiles = await Promise.all(
 
 <div class="tiles">
   {
-    tiles.map(({ category, count, photo }) => (
-      <a class="tile" href={categoryUrl(category.slug)}>
+    tiles.map(({ category, count, photo }, index) => (
+      <a class="tile" href={categoryUrl(category.slug)} data-reveal style={`--i:${index % 4}`}>
         {photo && (
           <img
+            class="tile__img"
             src={photo.src}
             srcset={photo.srcset}
-            sizes="160px"
+            sizes={index === 0 ? '(min-width: 960px) 50vw, 100vw' : '(min-width: 960px) 25vw, 50vw'}
             width={photo.width}
             height={photo.height}
             alt=""
             loading="lazy"
             decoding="async"
+            data-fade
           />
         )}
         <span class="tile__label">
           <span class="tile__name">{category.name}</span>
-          <span class="tile__count">{pluralise(count, 'item')}</span>
+          <span class="tile__count">{pluralise(count, 'piece')}</span>
         </span>
-        <span class="tile__arrow" aria-hidden="true">↗</span>
+        <span class="tile__arrow" aria-hidden="true">
+          <Icon name="arrow-up-right" size={18} />
+        </span>
       </a>
     ))
   }

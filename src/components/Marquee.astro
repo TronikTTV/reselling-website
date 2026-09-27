@@ -1,0 +1,32 @@
+---
+// The tilted scrolling ticker on the home page. The phrases come from
+// Settings → Store settings → Scrolling ticker. It's decorative, so screen readers skip it.
+import Icon from './Icon.astro';
+
+interface Props {
+  items: string[];
+}
+
+const phrases = Astro.props.items.length > 0 ? Astro.props.items : ['Authentic only', 'DM to cop', 'Fresh drops'];
+// Repeat short lists so one copy is always wider than the screen, then show it twice for a seamless loop.
+const run = Array.from({ length: Math.max(1, Math.ceil(8 / phrases.length)) }, () => phrases).flat();
+---
+
+<div class="marquee-wrap" aria-hidden="true">
+  <div class="marquee">
+    <div class="marquee__track">
+      {
+        [0, 1].map(() => (
+          <div class="marquee__group">
+            {run.map((phrase) => (
+              <span class="marquee__item">
+                {phrase}
+                <Icon name="spark" size={16} />
+              </span>
+            ))}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</div>

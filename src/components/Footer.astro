@@ -1,30 +1,69 @@
 ---
-import { contactLinks } from '../lib/contact';
+import Icon from './Icon.astro';
+import { getCategorySummaries } from '../lib/catalog';
+import { contactLinks, instagramHandle, primaryContact } from '../lib/contact';
 import { settings } from '../lib/site';
-import { shopUrl, url } from '../lib/url';
+import { categoryUrl, shopUrl, url } from '../lib/url';
 
-const links = contactLinks();
+const dm = primaryContact();
+const handle = instagramHandle();
+const profiles = contactLinks();
+const topCategories = (await getCategorySummaries()).filter((summary) => summary.count > 0).slice(0, 5);
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
-  <div class="container site-footer__inner">
-    <div>
-      <p class="site-footer__name">{settings.siteName}</p>
-      {settings.tagline && <p>{settings.tagline}</p>}
-      <p>© {year} {settings.siteName}</p>
-    </div>
+  <div class="container">
     {
-      links.length > 0 && (
-        <nav class="footer-links" aria-label="Contact">
-          {links.map((link) => (
-            <a class="chip" href={link.href} target={link.external ? '_blank' : undefined} rel={link.external ? 'noopener' : undefined}>
-              {link.label}
-            </a>
-          ))}
-        </nav>
+      dm && (
+        <section class="footer-cta" data-reveal aria-labelledby="footer-cta-title">
+          <p class="eyebrow">
+            <Icon name="spark" size={14} />
+            Seen something you like?
+          </p>
+          <h2 class="footer-cta__title" id="footer-cta-title">
+            Slide into <em>the DMs.</em>
+          </h2>
+          <p>Every piece is authentic. Send us a message and it's as good as yours.</p>
+          <a class="button button--accent button--lg" href={dm.href} target={dm.external ? '_blank' : undefined} rel={dm.external ? 'noopener' : undefined}>
+            <Icon name={dm.key === 'instagram' ? 'instagram' : 'arrow-up-right'} />
+            {handle ?? dm.label}
+          </a>
+        </section>
       )
     }
-    <nav class="footer-links" aria-label="Store"><a href={shopUrl()}>The collection ↗</a><a href={url('/manage/')}>Owner dashboard</a></nav>
+
+    <div class="site-footer__grid">
+      <div class="site-footer__brand">
+        <a class="brand" href={url('/')}>
+          <span class="brand__mark" aria-hidden="true"><Icon name="spark" size={18} /></span>
+          <span class="brand__name">{settings.siteName}</span>
+        </a>
+        {settings.tagline && <p>{settings.tagline}</p>}
+      </div>
+      <nav class="footer-col" aria-label="Shop">
+        <p class="footer-col__title">Shop</p>
+        <a href={shopUrl()}>Everything</a>
+        {topCategories.map(({ category }) => <a href={categoryUrl(category.slug)}>{category.name}</a>)}
+      </nav>
+      <nav class="footer-col" aria-label="Contact">
+        <p class="footer-col__title">Say hi</p>
+        {
+          profiles.map((link) => (
+            <a href={link.href} target={link.external ? '_blank' : undefined} rel={link.external ? 'noopener' : undefined}>
+              {link.label}
+            </a>
+          ))
+        }
+        <a href={url('/#how-it-works')}>How it works</a>
+      </nav>
+    </div>
+
+    <p class="footer-wordmark" aria-hidden="true">{settings.siteName}</p>
+
+    <div class="site-footer__legal">
+      <span>{`© ${year} ${settings.siteName}`}</span>
+      <a href={url('/manage/')}>Owner dashboard</a>
+    </div>
   </div>
 </footer>

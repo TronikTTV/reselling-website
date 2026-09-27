@@ -1,5 +1,8 @@
 ---
+import '@fontsource-variable/geist';
+import '@fontsource/instrument-serif/400-italic.css';
 import '../styles/global.css';
+import geistLatin from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { settings } from '../lib/site';
@@ -14,9 +17,11 @@ interface Props {
   /** Category slug to highlight in the header ("all" for the Shop all page). */
   currentCategory?: string;
   noindex?: boolean;
+  /** Extra class on <body>, e.g. to make room for the product page's sticky buy bar. */
+  bodyClass?: string;
 }
 
-const { title, description = settings.tagline, image, currentCategory } = Astro.props;
+const { title, description = settings.tagline, image, currentCategory, noindex, bodyClass } = Astro.props;
 const fullTitle = title ? `${title} | ${settings.siteName}` : settings.siteName;
 const siteRoot = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, siteRoot).href;
@@ -27,15 +32,17 @@ const previewImage = image ? new URL(image, siteRoot).href : undefined;
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {Astro.props.noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <title>{fullTitle}</title>
     {description && <meta name="description" content={description} />}
+    <link rel="preload" href={geistLatin} as="font" type="font/woff2" crossorigin />
     <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
     <link rel="canonical" href={canonical} />
-    <meta name="theme-color" content="#030405" />
+    <meta name="theme-color" content="#050507" />
 
-    <!-- Link previews when the site is shared in WhatsApp, iMessage, Instagram, Discord… -->
+    <!-- Link previews when the site is shared in WhatsApp, iMessage, Instagram, TikTok, Discord… -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={settings.siteName} />
     <meta property="og:title" content={title ?? settings.siteName} />
@@ -44,8 +51,9 @@ const previewImage = image ? new URL(image, siteRoot).href : undefined;
     {previewImage && <meta property="og:image" content={previewImage} />}
     <meta name="twitter:card" content={previewImage ? 'summary_large_image' : 'summary'} />
   </head>
-  <body style={`--star-map: url("${url('/stars.svg')}")`}>
-    <div class="space-backdrop" aria-hidden="true"></div>
+  <body class={bodyClass}>
+    <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="scroll-progress" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
     <Header currentCategory={currentCategory} />
     <main id="main">
@@ -54,3 +62,90 @@ const previewImage = image ? new URL(image, siteRoot).href : undefined;
     <Footer />
   </body>
 </html>
+
+<script>
+  // Slide things in as they scroll into view (anything marked data-reveal). With reduced
+  // motion turned on, the CSS turns the slide into a plain fade.
+  const revealed = document.querySelectorAll<HTMLElement>('[data-reveal]');
+  if (!('IntersectionObserver' in window)) {
+    revealed.forEach((element) => element.classList.add('is-in'));
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('is-in');
+          observer.unobserve(entry.target);
+        }
+      },
+      { rootMargin: '0px 0px -6% 0px', threshold: 0.08 },
+    );
+    revealed.forEach((element) => observer.observe(element));
+  }
+
+  // Fade photos in once they've loaded.
+  document.querySelectorAll<HTMLImageElement>('img[data-fade]').forEach((image) => {
+    const show = () => image.classList.add('is-loaded');
+    if (image.complete) show();
+    else {
+      image.addEventListener('load', show, { once: true });
+      image.addEventListener('error', show, { once: true });
+    }
+  });
+
+  // Header: tuck away while scrolling down, come back when scrolling up.
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  if (header) {
+    let lastY = window.scrollY;
+    let queued = false;
+    const update = () => {
+      const y = window.scrollY;
+      header.toggleAttribute('data-scrolled', y > 8);
+      if (y > lastY + 6 && y > 180 && !header.contains(document.activeElement)) header.setAttribute('data-hidden', '');
+      else if (y < lastY - 6 || y <= 180) header.removeAttribute('data-hidden');
+      lastY = y;
+      queued = false;
+    };
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(update);
+      },
+      { passive: true },
+    );
+    update();
+  }
+
+  // Tapping a product: its photo "flies" into the product page (in browsers with view transitions).
+  const clearPhotoNames = () =>
+    document.querySelectorAll<HTMLElement>('[data-vt-photo]').forEach((photo) => (photo.style.viewTransitionName = ''));
+  document.addEventListener('click', (event) => {
+    const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[data-vt-link]') : null;
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const photo = link.querySelector<HTMLElement>('[data-vt-photo]');
+    if (!photo) return;
+    clearPhotoNames();
+    photo.style.viewTransitionName = 'product-photo';
+  });
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) clearPhotoNames();
+  });
+
+  // Search sheet (falls back to the Shop page link without JavaScript).
+  const sheet = document.querySelector<HTMLDialogElement>('[data-search-sheet]');
+  if (sheet) {
+    document.querySelectorAll<HTMLElement>('[data-open-search]').forEach((opener) =>
+      opener.addEventListener('click', (event) => {
+        event.preventDefault();
+        sheet.showModal();
+        sheet.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+      }),
+    );
+    sheet.querySelector('[data-close-search]')?.addEventListener('click', () => sheet.close());
+    sheet.addEventListener('click', (event) => {
+      if (event.target === sheet) sheet.close();
+    });
+  }
+</script>
