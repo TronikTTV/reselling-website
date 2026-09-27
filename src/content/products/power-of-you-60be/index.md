@@ -1,5 +1,5 @@
 ---
-title: Power Of You
+title: Armani Power Of You
 images:
   - chatgpt-image-27-sept-2026-23-43-27-1-2c860.webp
 category: fragrances
