@@ -5,6 +5,7 @@ import { icon, type IconName } from './lib/icons.ts';
 import { StudioError } from './lib/backend.ts';
 import type { Reason, Store } from './store.ts';
 import { busy, confirmDialog, errorMessage, hydrateMedia, openSheet, thumb, toast } from './ui.ts';
+import { addPhotosView } from './views/add-photos.ts';
 import { categoriesView } from './views/categories.ts';
 import { liveView } from './views/live.ts';
 import { overviewView } from './views/overview.ts';
@@ -43,6 +44,7 @@ const VIEWS: Record<string, ViewFactory> = {
   overview: overviewView,
   live: liveView,
   products: (context) => (context.route.parts[0] ? productEditorView(context) : productsView(context)),
+  add: addPhotosView,
   text: textView,
   categories: categoriesView,
   settings: settingsView,
@@ -52,6 +54,7 @@ const NAV: { route: string; label: string; icon: IconName; hint?: string }[] = [
   { route: 'overview', label: 'Overview', icon: 'overview' },
   { route: 'live', label: 'Live editor', icon: 'live', hint: 'Click and edit your actual site' },
   { route: 'products', label: 'Products', icon: 'products' },
+  { route: 'add', label: 'Add from photos', icon: 'sparkles', hint: 'Photos in, listings out' },
   { route: 'text', label: 'Site text', icon: 'text' },
   { route: 'categories', label: 'Categories', icon: 'categories' },
   { route: 'settings', label: 'Settings', icon: 'settings' },
@@ -86,6 +89,7 @@ export function mountShell(root: HTMLElement, store: Store, signOut: () => void)
                   ${icon(item.icon, 19)}
                   <span>${item.label}</span>
                   ${item.route === 'live' ? html`<span class="st-nav__badge">Visual</span>` : ''}
+                  ${item.route === 'add' ? html`<span class="st-nav__badge">AI</span>` : ''}
                   <span class="st-nav__count" data-nav-count="${item.route}"></span>
                 </a>
               `,

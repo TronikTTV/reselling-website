@@ -1,6 +1,7 @@
 ---
 import Copy from './Copy.astro';
 import Icon from './Icon.astro';
+import Words from './Words.astro';
 import { getCategorySummaries } from '../lib/catalog';
 import { contactLinks, instagramHandle, primaryContact } from '../lib/contact';
 import { settings } from '../lib/site';
@@ -40,7 +41,7 @@ const year = new Date().getFullYear();
           <span class="brand__mark" aria-hidden="true"><Icon name="spark" size={18} /></span>
           <span class="brand__name" data-edit="site:siteName">{settings.siteName}</span>
         </a>
-        {settings.tagline && <p data-edit="site:tagline">{settings.tagline}</p>}
+        {settings.tagline && <p data-edit="site:tagline"><Words text={settings.tagline} /></p>}
       </div>
       <nav class="footer-col" aria-label="Shop">
         <p class="footer-col__title"><Copy name="footer.shopHeading" /></p>

@@ -1,0 +1,11 @@
+# Cloudflare Pages settings for this site. While this file exists, Cloudflare uses it for these settings
+# (the dashboard shows them read-only); the build command is still set in the dashboard.
+#
+# The only thing added here is Workers AI for the store admin's "Add from photos"
+# (functions/api/identify.ts). It uses the account's free daily allowance and costs nothing.
+name = "central-supply"
+pages_build_output_dir = "./dist"
+compatibility_date = "2025-06-01"
+
+[ai]
+binding = "AI"

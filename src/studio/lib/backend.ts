@@ -59,6 +59,8 @@ export interface Backend {
   commit(base: Snapshot, changes: TreeChange[], message: string, progress?: (text: string) => void): Promise<CommitResult>;
   account(): Promise<Account>;
   activity(): Promise<Activity[]>;
+  /** Headers that prove to this site's own endpoints (e.g. /api/identify) that it's the owner. */
+  authHeaders(): Record<string, string>;
 }
 
 export type ErrorKind = 'auth' | 'permission' | 'missing' | 'rate' | 'network' | 'conflict' | 'invalid' | 'server';
@@ -248,6 +250,10 @@ export class GitHubBackend implements Backend {
     return { head: commit.sha };
   }
 
+  authHeaders(): Record<string, string> {
+    return { Authorization: `Bearer ${this.token}` };
+  }
+
   async account(): Promise<Account> {
     const user = await this.json<{ login: string; name?: string | null; avatar_url?: string }>('/user');
     return { login: user.login, name: user.name ?? undefined, avatar: user.avatar_url };
@@ -323,6 +329,10 @@ export class LocalBackend implements Backend {
     );
     const result = (await (await this.request('/commit', { method: 'POST', body: JSON.stringify({ message, changes: payload }) })).json()) as { head: string };
     return { head: result.head };
+  }
+
+  authHeaders(): Record<string, string> {
+    return { 'X-Studio': '1' };
   }
 
   async account(): Promise<Account> {

@@ -5,6 +5,7 @@ import CategoryTiles from '../components/CategoryTiles.astro';
 import Copy from '../components/Copy.astro';
 import Icon from '../components/Icon.astro';
 import Marquee from '../components/Marquee.astro';
+import Words from '../components/Words.astro';
 import ProductCard from '../components/ProductCard.astro';
 import ProductRail from '../components/ProductRail.astro';
 import { getCategorySummaries, getListedProducts } from '../lib/catalog';
@@ -89,7 +90,7 @@ const accentWords = settings.heroAccent.split(/\s+/).filter(Boolean);
           }
         </span>
       </h1>
-      {settings.tagline && <p class="hero__tagline" data-edit="site:tagline">{settings.tagline}</p>}
+      {settings.tagline && <p class="hero__tagline" data-edit="site:tagline"><Words text={settings.tagline} /></p>}
       <div class="hero__actions">
         <a class="button button--accent button--lg" href={shopUrl()}>
           <Copy name="home.shopButton" />

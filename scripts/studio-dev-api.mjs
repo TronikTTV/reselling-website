@@ -27,6 +27,42 @@ const TYPES = {
 
 const gitSha = (bytes) => createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
 
+// "Add from photos" on this PC: the real AI only runs on the live site (functions/api/identify.ts), so
+// this gives sample suggestions from the photo's file name, clearly marked as samples.
+const GUESSES = [
+  [/watch|rolex|omega|casio|seiko|chrono/, 'watches'],
+  [/cap|hat|beanie|bucket/, 'hats'],
+  [/dunk|jordan|yeezy|trainer|sneaker|shoe|air ?max|air ?force|samba|gazelle|new ?balance|slide/, 'shoes'],
+  [/hoodie|tee|t-?shirt|shirt|jacket|jumper|sweat|trouser|jeans|shorts|coat|fleece|tracksuit/, 'clothing'],
+  [/sunglass|glasses|shades/, 'glasses'],
+  [/sock/, 'socks'],
+  [/airpod|earbud|headphone|phone|console|switch|playstation|ps5|ipad|laptop|speaker/, 'electronics'],
+  [/perfume|parfum|cologne|fragrance|toilette|edp|edt|\d+ ?ml\b/, 'fragrances'],
+  [/bag|backpack|tote|pouch/, 'bags'],
+  [/chain|ring|bracelet|necklace|pendant|earring/, 'jewellery'],
+  [/wallet|belt|cardholder|keyring|scarf/, 'accessories'],
+];
+
+function sampleListing(filename, categories) {
+  const words = String(filename || '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const lower = words.toLowerCase();
+  const slugs = new Set(categories.map((category) => category.slug));
+  const guess = GUESSES.find(([pattern, slug]) => slugs.has(slug) && pattern.test(lower));
+  const title = words && !/^(img|dsc|photo|image|pxl)\s?\d/i.test(words) ? words.replace(/\b\w/g, (letter) => letter.toUpperCase()) : 'New piece';
+  return {
+    category: guess ? guess[1] : (categories[0]?.slug ?? ''),
+    title,
+    brand: '',
+    description: 'Sample description: on your live site the AI writes this from the photo.',
+    includes: [],
+    condition: '',
+    colourway: '',
+    styleCode: '',
+    price: null,
+    confidence: 0.2,
+  };
+}
+
 function send(res, status, body, type = 'text/plain; charset=utf-8') {
   res.statusCode = status;
   res.setHeader('Content-Type', type);
@@ -152,6 +188,18 @@ export default function studioDevApi() {
       root = config.root || root;
     },
     configureServer(server) {
+      server.middlewares.use('/api/identify', async (req, res) => {
+        try {
+          if (req.method === 'GET') return json(res, { ai: true, sample: true });
+          if (req.method !== 'POST') return send(res, 405, 'POST only.');
+          const body = JSON.parse((await readBody(req)) || '{}');
+          const categories = Array.isArray(body.categories) ? body.categories : [];
+          return json(res, { listing: sampleListing(body.filename, categories), sample: true, model: 'sample' });
+        } catch (error) {
+          return send(res, 500, JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), 'application/json');
+        }
+      });
+
       server.middlewares.use('/__studio', async (req, res) => {
         try {
           const origin = req.headers.origin;

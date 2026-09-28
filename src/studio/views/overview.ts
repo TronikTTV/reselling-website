@@ -51,7 +51,7 @@ export function overviewView(context: Context): View {
             ${store.snapshot?.date ? html`<span>· Last saved ${timeAgo(store.snapshot.date)}</span>` : ''}
           </p>
           <div class="st-hero__actions">
-            <a class="st-btn st-btn--primary" href="#/products/new">${icon('plus', 17)} Add a product</a>
+            <a class="st-btn st-btn--primary" href="#/add">${icon('sparkles', 17)} Add from photos</a>
             <a class="st-btn st-btn--glass" href="#/live">${icon('wand', 17)} Edit your site live</a>
             <button type="button" class="st-btn st-btn--ghost" data-share>${icon('share', 16)} Share store</button>
           </div>

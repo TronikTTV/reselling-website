@@ -12,8 +12,8 @@ checkout and no payments.
   output `dist`; the site address comes from `CF_PAGES_URL`, see `astro.config.mjs`).
   `.github/workflows/deploy.yml` is a manual-only GitHub Pages backup. It must stay free and static.
 - **The owner runs the store from the admin Studio** at `/admin/` (`src/studio/`): products with photos
-  and videos, every piece of site text, categories, settings, and a live editor that shows the real site
-  to click and edit. It runs in the browser and saves to this repo as commits, using the owner's admin
+  and videos, "Add from photos" (AI fills in listings from photos), every piece of site text, categories,
+  settings, and a live editor that shows the real site to click and edit. It runs in the browser and saves to this repo as commits, using the owner's admin
   key (a GitHub access token). The classic editor (Sveltia CMS) is kept at `/admin/cms/`. The owner is
   not a developer.
 - The owner mostly uses you for **visual design**: layout, typography, colour, spacing, components and
@@ -38,16 +38,17 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 | --- | --- |
 | `src/styles/global.css` | All storefront styling. Design tokens (colours, gradients, fonts, radii, easing) are at the top in `:root`. Start here. Fonts are Geist Variable and Instrument Serif italic from `@fontsource`, imported in `BaseLayout.astro`. |
 | `src/layouts/BaseLayout.astro` | `<html>`/`<head>`, meta and link-preview tags, header and footer. |
-| `src/components/` | `Header` (with the search sheet), `Footer`, `AdReel` (story-style video/photo ads at the top of the home page), `Marquee` (ticker), `ProductRail` (swipe row), `ProductCard`, `ProductBrowser` (search/filter/sort + grid), `Gallery` (photos + full-screen viewer), `CategoryTiles` (bento grid), `ShareButton`, `Icon` (all icons), `Copy` (a piece of editable site text). |
+| `src/components/` | `Header` (with the search sheet), `Footer`, `AdReel` (story-style video/photo ads at the top of the home page), `Marquee` (ticker), `ProductRail` (swipe row), `ProductCard`, `ProductBrowser` (search/filter/sort + grid), `Gallery` (photos + full-screen viewer), `CategoryTiles` (bento grid), `ShareButton`, `Icon` (all icons), `Copy` (a piece of editable site text), `Words` (text that never splits a hyphenated word across lines). |
 | `src/pages/` | `index` (home), `shop` (all products), `category/[slug]`, `product/[slug]`, `404`, `manage` (old dashboard address, forwards to `/admin/`), `admin/` (the Studio page; `cms/` the classic editor; `catalog.json` and `build.json`, data the Studio reads; `config.yml` for the classic editor). |
-| `src/lib/` | `catalog.ts` (loading and sorting products), `site.ts` (settings and categories), `copy.ts` + `copy-fields.ts` (site wording, its defaults and how the Studio labels it), `images.ts` (photo sizes), `url.ts` (links), `format.ts` + `labels.ts` (prices, status and "where it's from" labels), `contact.ts` (message links), `search.ts`, `videos.ts`, `build-info.ts`. |
+| `src/lib/` | `catalog.ts` (loading and sorting products), `site.ts` (settings and categories), `copy.ts` + `copy-fields.ts` (site wording, its defaults and how the Studio labels it), `images.ts` (photo sizes), `url.ts` (links), `format.ts` + `labels.ts` (prices, status and "where it's from" labels), `contact.ts` (message links), `search.ts`, `videos.ts`, `build-info.ts`, `identify.ts` (the AI behind "Add from photos", run on Cloudflare). |
 | `src/content/products/<slug>/index.md` | One folder per product: front matter + description, with its photos and video next to it. Written by the Studio. |
 | `src/content.config.ts` | Product schema (deliberately forgiving so one bad entry can't break the build). |
 | `src/data/settings.json`, `categories.json`, `content.json` | Store settings, the category list, and the site's wording (all edited in the Studio). |
-| `src/studio/` | The admin Studio, vanilla TypeScript: `main.ts` (sign-in), `shell.ts` (frame, Publish bar, live status), `store.ts` (data, unpublished changes, publishing), `views/` (Overview, Products, product editor, Site text, Categories, Settings, and `live.ts`, the live editor), `lib/backend.ts` (GitHub API, or this PC's files), `lib/product-file.ts` (reading/writing product files), `studio.css`. |
+| `src/studio/` | The admin Studio, vanilla TypeScript: `main.ts` (sign-in), `shell.ts` (frame, Publish bar, live status), `store.ts` (data, unpublished changes, publishing), `views/` (Overview, Products, product editor, `add-photos.ts` "Add from photos", Site text, Categories, Settings, and `live.ts`, the live editor), `lib/backend.ts` (GitHub API, or this PC's files), `lib/ai.ts` (asking /api/identify), `lib/product-file.ts` (reading/writing product files), `studio.css`. |
+| `functions/api/identify.ts`, `wrangler.toml` | The only server code: a Cloudflare Pages Function for "Add from photos" (logic in `src/lib/identify.ts`), using the account's free Workers AI allowance through the `AI` binding in `wrangler.toml`. Only works with the owner's admin key. |
 | `src/cms/config.yml` | Classic editor fields, served as `/admin/config.yml` (its Site text section is generated from `copy-fields.ts`). |
 | `scripts/import-products.mjs` | Bulk import from the local `import/` folder (`npm run import`). |
-| `scripts/studio-dev-api.mjs` | Only during `npm run dev`: lets the Studio edit this folder's files ("Edit this PC's files"). |
+| `scripts/studio-dev-api.mjs` | Only during `npm run dev`: lets the Studio edit this folder's files ("Edit this PC's files") and answers /api/identify with sample suggestions. |
 
 ## Rules
 
@@ -82,7 +83,12 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
    - `ShareButton`: `[data-share]`, `[data-share-label]`.
    - `AdReel`: `[data-reel]`, `[data-reel-slide]` (+ `.is-active`), `[data-reel-video]`, `[data-reel-go]`,
      `[data-reel-sound]`. The active progress bar's CSS animation (`.reel__bar.is-active .reel__fill`)
-     is what advances the slides: its `animationend` event moves to the next one.
+     is what advances the slides: its `animationend` event moves to the next one. Each product is shown
+     whole: `.reel__frame` takes the photo's or video's shape from `--ar` (the script sets it for videos
+     once they load) and the largest size that fits `.reel__stage`; `.reel__backdrop` is a blurred copy.
+     Don't crop products with `object-fit: cover` on a differently shaped box, and keep the words and
+     buttons off the product. The reel's height fills the first screen using `--reel-top` (set by the
+     script), so the buttons are always in view.
    - Site-wide (`BaseLayout.astro` script): `[data-reveal]` (gets `.is-in` when scrolled into view),
      `img[data-fade]` (gets `.is-loaded`), `[data-header]` (gets `data-scrolled` / `data-hidden`),
      `[data-search-sheet]` with `[data-open-search]` / `[data-close-search]`, and `a[data-vt-link]` containing
@@ -105,7 +111,9 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 6. **Stay static and free.** No SSR adapters, databases, paid services, API keys or trackers. Keep
    client-side JavaScript small and vanilla (Astro `<script>` tags), with no UI frameworks just for
    decoration. Self-host fonts (`@fontsource/*` packages or Astro's font support) instead of loading
-   third-party CSS/JS from CDNs. (The Studio's larger script only loads on `/admin/`.)
+   third-party CSS/JS from CDNs. (The Studio's larger script only loads on `/admin/`.) The one piece of
+   server code is `functions/api/identify.ts` (free Workers AI, owner-only); don't add more, and never put
+   an API key in the site.
 7. **Motion.** The site is meant to feel alive (the owner asked for lots of clean animation), but
    it's kept to `transform`/`opacity` so it stays smooth in TikTok's in-app browser. Under
    `prefers-reduced-motion: reduce` (the owner's own PC has Windows animation effects switched off) keep
@@ -127,7 +135,8 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 
 ## Before you finish
 
-- `npm run build` succeeds, `npm run check` reports 0 errors and `npm run test:studio` passes.
+- `npm run build` succeeds, `npm run check` reports 0 errors and `npm run test:studio` passes (it also
+  tests /api/identify).
 - Home, Shop all (search, category and brand filters, sort, "Hide sold", Show more), a category page and
   a product page (swipe, thumbnails, full-screen viewer, share button) all still work, on phone and
   desktop widths.

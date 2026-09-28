@@ -4410,6 +4410,378 @@ img.st-thumb.is-missing {
 }
 
 /* ==========================================================================
+   Add from photos
+   ========================================================================== */
+.st-title__accent {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.st-add__intro {
+  margin-top: 14px;
+}
+
+.st-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid rgb(123 155 255 / 0.35);
+  border-radius: var(--pill);
+  background: linear-gradient(115deg, rgb(91 124 255 / 0.16), rgb(155 123 255 / 0.1));
+  color: #dfe5ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.st-ai-chip .i {
+  color: var(--accent-3);
+}
+
+.st-ai-chip--sample {
+  border-color: rgb(255 203 107 / 0.35);
+  background: rgb(255 203 107 / 0.08);
+  color: #ffe2a8;
+}
+
+.st-ai-chip--sample .i,
+.st-ai-chip--off .i {
+  color: var(--warn);
+}
+
+.st-ai-chip--off {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.st-add__drop {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 56px 24px;
+  border: 1.5px dashed rgb(123 155 255 / 0.45);
+  border-radius: var(--r-xl);
+  background:
+    radial-gradient(70% 90% at 50% 0%, rgb(91 124 255 / 0.14), transparent 70%),
+    var(--surface);
+  color: var(--muted);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.3s ease, transform 0.35s var(--spring);
+}
+
+.st-add__drop:hover,
+.st-add.is-dropping .st-add__drop {
+  border-color: var(--accent-3);
+  transform: translateY(-2px);
+}
+
+.st-add__drop strong {
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.st-add__drop-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  border-radius: 20px;
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 14px 40px rgb(91 124 255 / 0.45);
+}
+
+.st-add__tips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  margin-top: 12px;
+  font-size: 0.82rem;
+}
+
+.st-add__tips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.st-add__tips .i {
+  color: var(--ok);
+}
+
+.st-add__meta {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+}
+
+.st-ai-grid {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 110px;
+}
+
+@media (min-width: 1500px) {
+  .st-ai-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Each card lays itself out for its own width: photo on top when narrow, beside the fields when wide. */
+.st-ai-card {
+  container-type: inline-size;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  animation: st-rise 0.45s var(--ease) both;
+  transition: border-color 0.3s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.st-ai-card__inner {
+  display: grid;
+  gap: 14px;
+}
+
+@container (min-width: 600px) {
+  .st-ai-card__inner {
+    grid-template-columns: 200px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.st-ai-card.is-thinking,
+.st-ai-card.is-preparing {
+  border-color: rgb(123 155 255 / 0.4);
+}
+
+.st-ai-card.is-ready {
+  border-color: rgb(110 240 168 / 0.22);
+}
+
+.st-ai-card.is-error {
+  border-color: rgb(255 203 107 / 0.3);
+}
+
+.st-ai-card.is-leaving {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.st-ai-card__media {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--surface-3);
+}
+
+.st-ai-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--surface-2);
+}
+
+.st-ai-card__remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.st-ai-status {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - 16px);
+  padding: 4px 10px;
+  border-radius: var(--pill);
+  background: rgb(0 0 0 / 0.65);
+  color: #d8d8e0;
+  font-size: 0.74rem;
+  font-weight: 650;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+.st-ai-status--thinking {
+  background: var(--grad);
+  color: #fff;
+}
+
+.st-ai-status--ready {
+  color: var(--ok);
+}
+
+.st-ai-status--guess,
+.st-ai-status--error,
+.st-ai-status--sample {
+  color: var(--warn);
+}
+
+/* A light sweeping over the photo while the AI looks at it. */
+.st-ai-card__scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgb(54 214 255 / 0.28) 48%, rgb(155 123 255 / 0.18) 52%, transparent 100%) 0 -100% / 100% 60% no-repeat;
+  animation: st-scan 1.6s var(--ease) infinite;
+  pointer-events: none;
+}
+
+@keyframes st-scan {
+  to {
+    background-position: 0 220%;
+  }
+}
+
+.st-ai-card__fields {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.st-ai-card__fields .st-grid-2 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container (min-width: 360px) {
+  .st-ai-card__fields .st-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.st-ai-card__fields .st-input:disabled,
+.st-ai-card__fields select:disabled {
+  background: linear-gradient(100deg, var(--surface-2) 20%, var(--surface-3) 40%, var(--surface-2) 60%) 0 0 / 300% 100%;
+  animation: st-shimmer 1.4s linear infinite;
+  cursor: progress;
+}
+
+.st-choices--sm {
+  gap: 6px;
+}
+
+.st-choices--sm .st-choice {
+  min-height: 34px;
+  padding: 0 11px;
+  font-size: 0.8rem;
+}
+
+.st-ai-suggested {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--pill);
+  background: rgb(91 124 255 / 0.16);
+  color: #cfd8ff;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.st-add__foot {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabs-h) + 12px + env(safe-area-inset-bottom));
+  z-index: 55;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  width: min(760px, calc(100vw - 20px));
+  padding: 10px 10px 10px 14px;
+  border: 1px solid rgb(123 155 255 / 0.35);
+  border-radius: 22px;
+  background: rgb(12 12 18 / 0.9);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.6);
+  transform: translateX(-50%);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  animation: st-bar-in 0.5s var(--spring);
+}
+
+.st-app.has-publish .st-add__foot {
+  bottom: calc(var(--tabs-h) + 92px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1000px) {
+  .st-add__foot {
+    left: calc(50% + var(--side) / 2);
+    bottom: 22px;
+  }
+
+  .st-app.has-publish .st-add__foot {
+    bottom: 100px;
+  }
+}
+
+.st-add__count {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.st-add__count .i {
+  color: var(--accent-3);
+}
+
+.st-toggle--inline {
+  padding: 6px 10px 6px 6px;
+  border: 0;
+  background: none;
+}
+
+.st-toggle--inline:has(input:checked) {
+  background: none;
+}
+
+.st-toggle--inline .st-toggle__text small {
+  font-size: 0.74rem;
+}
+
+/* Phones: the switch and the count share a row, the button gets the full width below. */
+@media (max-width: 560px) {
+  .st-add__foot {
+    padding: 8px 10px 10px;
+  }
+
+  .st-add__count {
+    justify-content: flex-end;
+    padding-right: 4px;
+    font-size: 0.8rem;
+    text-align: right;
+  }
+
+  .st-add__foot .st-toggle__text small {
+    display: none;
+  }
+
+  .st-add__foot .st-btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* ==========================================================================
    Reduced motion: fades stay, movement goes
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -4468,6 +4840,20 @@ img.st-thumb.is-missing {
 
   .st-bars__fill {
     animation: st-fade 0.6s ease both;
+  }
+
+  .st-ai-card,
+  .st-add__foot {
+    animation-name: st-fade !important;
+  }
+
+  .st-ai-card__scan {
+    animation: none;
+    background: rgb(54 214 255 / 0.12);
+  }
+
+  .st-add__drop:hover {
+    transform: none;
   }
 
   .st-live__device-frame {

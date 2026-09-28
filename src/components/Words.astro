@@ -1,0 +1,10 @@
+---
+// Text that never breaks a hyphenated word across two lines ("Hand-" / "picked").
+interface Props {
+  text: string;
+}
+
+const pieces = Astro.props.text.split(/(\S*[\p{L}\p{N}]-[\p{L}\p{N}]\S*)/u).filter(Boolean);
+---
+
+{pieces.map((piece) => (/[\p{L}\p{N}]-[\p{L}\p{N}]/u.test(piece) ? <span class="nobr">{piece}</span> : piece))}

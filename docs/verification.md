@@ -1,5 +1,29 @@
 # Storefront refresh
 
+## Phone/computer check, whole-product ads and Add from photos — 28 September 2026
+
+- **Layout check:** home, shop, a category, two product pages and the 404 page were measured at 320, 360,
+  390, 430, 768, 844 (sideways phone), 1024, 1366 and 1920px wide: no sideways scrolling, no text spilling
+  out of its box, no wrapped buttons or overflowing headings. Fixed on the way: the Shop filters on phones
+  were one sideways-scrolling row with "All brands" cut off (now a two-column grid), and hyphenated words
+  such as "Hand-picked" could split across lines (now kept together).
+- **Ads at the top:** before, product photos were cropped to fill the ad: on a 1366×657 laptop only 32%
+  of a portrait photo showed, and on phones the title covered the bottom of the product. Now each ad
+  shows the whole photo or video in a frame of its own shape over a blurred copy, with the words beside it
+  (computers) or underneath (phones). Measured at 11 sizes from 320×568 to 1920×1080 plus sideways phones:
+  the whole photo is visible, nothing overlaps it, the buttons are inside the ad, and the ad fits the
+  first screen (its height comes from the space left under the header).
+- **Add from photos:** `/api/identify` (a Cloudflare Pages Function, free Workers AI via `wrangler.toml`)
+  plus a new Studio page and a "Fill in from photo" button. `npm run test:studio` now has 8 more tests
+  with a fake AI and fake GitHub: owner-only access, tidy listings (categories matched, unknown extras and
+  "authentic" wording dropped, prices rounded), the key checked with GitHub once per batch, falling back
+  to the second model, the daily-allowance message and bad requests. Cloudflare's own `wrangler pages
+  functions build` compiled it with GET and POST routes. In "Edit this PC's files" mode, three dropped
+  photos became filled-in cards (sample answers), edits were kept, "Add 3 products" created them with their
+  photos, and publishing wrote correct product folders whose pages returned 200 (then removed).
+- 612 fragrance listings imported from the luxurybrand.top supplier files were found uncommitted in the
+  owner's folder. They were left untouched and are not part of these changes.
+
 ## Store admin Studio and live editor — 27 September 2026
 
 - `/admin/` is now the Studio (`src/studio/`): Overview, Live editor, Products, product editor (photos,

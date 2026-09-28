@@ -22,3 +22,6 @@ desktop.ini
 # bulk-import inbox: raw photos stay on your PC, only the optimised copies get committed
 import/*
 !import/README.txt
+
+# Cloudflare wrangler working files
+.wrangler/

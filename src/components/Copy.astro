@@ -2,6 +2,7 @@
 // A piece of the site's wording from Site text (src/data/content.json). The data-edit hook lets the
 // admin Studio's live editor find it, so keep it whatever the markup around it looks like.
 // With `accent`, words wrapped in *stars* (or else the last word) are shown in italics.
+import Words from './Words.astro';
 import { accentParts, copy, type CopyKey } from '../lib/copy';
 
 interface Props {
@@ -14,4 +15,4 @@ const text = copy(name);
 const parts = accent ? accentParts(text) : [{ text, accent: false }];
 ---
 
-<span data-edit={`copy:${name}`}>{parts.map((part) => (part.accent ? <em>{part.text}</em> : part.text))}</span>
+<span data-edit={`copy:${name}`}>{parts.map((part) => (part.accent ? <em><Words text={part.text} /></em> : <Words text={part.text} />))}</span>

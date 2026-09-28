@@ -1,8 +1,9 @@
 ---
 // Story-style product ads at the top of the home page, like TikTok and Instagram stories.
-// Each slide plays the product's video (muted and looping) or, without one, slowly zooms
-// through its photo. Slides advance by themselves; tap the right or left side to skip or go back,
-// and press and hold to pause. Only the slide on screen ever plays.
+// Each slide shows the product's video (muted and looping) or photo whole, in a frame the shape of
+// the photo/video, over a blurred copy of it; the text sits beside it (computers) or under it
+// (phones), never on top of the product. Slides advance by themselves; tap the right or left side
+// to skip or go back, and press and hold to pause. Only the slide on screen ever plays.
 import Copy from './Copy.astro';
 import Icon from './Icon.astro';
 import type { Product } from '../lib/catalog';
@@ -34,6 +35,8 @@ const hasVideo = ads.some((ad) => ad.video);
       ads.map(({ product, photo, video }, index) => {
         const { title, brand, price, size, condition } = product.data;
         const meta = [formatPrice(price) ?? copy('common.askPrice'), size, condition].filter(Boolean).join(' · ');
+        // The frame takes the photo's shape; a video's frame starts upright (9:16) and adjusts once it loads.
+        const ratio = video ? 9 / 16 : photo.width / Math.max(photo.height, 1);
         return (
           <article
             class:list={['reel__slide', index === 0 && 'is-active']}
@@ -43,35 +46,50 @@ const hasVideo = ads.some((ad) => ad.video);
             aria-label={`${index + 1} of ${ads.length}: ${title}`}
             aria-hidden={index === 0 ? undefined : 'true'}
           >
-            {video ? (
-              <video
-                class="reel__media"
-                src={video}
-                poster={photo.src}
-                muted
-                loop
-                playsinline
-                autoplay={index === 0}
-                preload={index === 0 ? 'auto' : 'none'}
-                data-reel-video
-                data-field="video"
-                aria-hidden="true"
-              />
-            ) : (
-              <img
-                class="reel__media reel__photo"
-                data-field="image"
-                src={photo.src}
-                srcset={photo.srcset}
-                sizes="100vw"
-                width={photo.width}
-                height={photo.height}
-                alt=""
-                loading={index === 0 ? 'eager' : 'lazy'}
-                fetchpriority={index === 0 ? 'high' : 'auto'}
-                decoding="async"
-              />
-            )}
+            <img
+              class="reel__backdrop"
+              src={photo.small}
+              alt=""
+              aria-hidden="true"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              data-field="image"
+              data-i="0"
+            />
+            <div class="reel__stage">
+              <div class="reel__frame" style={`--ar:${ratio.toFixed(4)}`}>
+                {video ? (
+                  <video
+                    class="reel__media"
+                    src={video}
+                    poster={photo.src}
+                    muted
+                    loop
+                    playsinline
+                    autoplay={index === 0}
+                    preload={index === 0 ? 'auto' : 'none'}
+                    data-reel-video
+                    data-field="video"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <img
+                    class="reel__media reel__photo"
+                    data-field="image"
+                    data-i="0"
+                    src={photo.src}
+                    srcset={photo.srcset}
+                    sizes="(min-width: 900px) 42vw, 92vw"
+                    width={photo.width}
+                    height={photo.height}
+                    alt=""
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={index === 0 ? 'high' : 'auto'}
+                    decoding="async"
+                  />
+                )}
+              </div>
+            </div>
             <div class="reel__content">
               <p class="reel__eyebrow" data-field="brand">
                 <span class="live-dot" aria-hidden="true" />
@@ -130,6 +148,22 @@ const hasVideo = ads.some((ad) => ad.video);
 
 <script>
   document.querySelectorAll<HTMLElement>('[data-reel]').forEach((reel) => {
+    // Fill the rest of the first screen (the CSS takes away what's above the reel: header, announcement).
+    const fitHeight = () => reel.style.setProperty('--reel-top', `${Math.round(reel.getBoundingClientRect().top + window.scrollY)}px`);
+    fitHeight();
+    window.addEventListener('resize', fitHeight, { passive: true });
+
+    // A video's frame takes the video's real shape once it's known.
+    reel.querySelectorAll<HTMLVideoElement>('[data-reel-video]').forEach((video) => {
+      const shape = () => {
+        if (video.videoWidth && video.videoHeight) {
+          video.parentElement?.style.setProperty('--ar', (video.videoWidth / video.videoHeight).toFixed(4));
+        }
+      };
+      if (video.readyState >= 1) shape();
+      video.addEventListener('loadedmetadata', shape);
+    });
+
     const slides = Array.from(reel.querySelectorAll<HTMLElement>('[data-reel-slide]'));
     const bars = Array.from(reel.querySelectorAll<HTMLElement>('[data-reel-go]'));
     const soundButton = reel.querySelector<HTMLButtonElement>('[data-reel-sound]');

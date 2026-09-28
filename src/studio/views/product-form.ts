@@ -2,6 +2,7 @@
 // product) and in the live editor's side panel. Every change is kept straight away as an unpublished
 // change; nothing needs saving separately.
 import { AUTHENTICITY_LABELS, STATUS_LABELS, type Status } from '../../lib/labels.ts';
+import { aiStatus, identify } from '../lib/ai.ts';
 import { $, $$, escapeHtml, html, raw, setHtml } from '../lib/dom.ts';
 import { icon } from '../lib/icons.ts';
 import { megabytes, preparePhoto, prepareVideo, videoPoster } from '../lib/media.ts';
@@ -95,6 +96,7 @@ export function productForm(store: Store, id: string, options: { compact?: boole
               <h2 class="st-card__title">${icon('image', 18)} Photos</h2>
               <p class="st-card__sub">The first photo is the cover. Drag to reorder${matchMedia('(pointer: coarse)').matches ? ' (press and hold)' : ''}.</p>
             </div>
+            <button type="button" class="st-btn st-btn--glass st-btn--sm" data-fill-ai hidden title="Suggest the name, category, price and more from the cover photo">${icon('sparkles', 15)} Fill in from photo</button>
           </header>
           <div class="st-photos" data-photos></div>
         </section>
@@ -247,6 +249,63 @@ export function productForm(store: Store, id: string, options: { compact?: boole
       `,
     );
     renderMedia(true);
+    // Only offered where the AI is available (the live site, or sample answers on this PC).
+    aiStatus(store).then((status) => {
+      const button = $<HTMLButtonElement>('[data-fill-ai]', el);
+      if (button) button.hidden = !status.available;
+    });
+  }
+
+  /** Asks the AI about the cover photo and fills in whatever is still empty. */
+  async function fillFromPhoto(button: HTMLButtonElement) {
+    const current = product();
+    const cover = current.data.images[0];
+    if (!cover) {
+      toast('Add a photo first.', { tone: 'info' });
+      return;
+    }
+    button.disabled = true;
+    setHtml(button, html`<span class="st-spinner st-spinner--sm"></span> Looking at the photo…`);
+    try {
+      let blob = current.media.get(cover)?.blob;
+      if (!blob) {
+        const url = await store.mediaUrl(current, cover, 'full');
+        if (!url) throw new Error("That photo couldn't be found.");
+        blob = await (await fetch(url)).blob();
+      }
+      // (Uploaded photos get a short random code on the end of their name: leave it out of the hint.)
+      const { listing, sample } = await identify(store, blob, cover.replace(/-[0-9a-f]{5}(?=.[a-z0-9]+$)/i, ''));
+      const data = product().data;
+      const patch: Partial<ProductData> = {};
+      if (!data.title.trim() && listing.title) patch.title = listing.title;
+      if (!data.brand && listing.brand) patch.brand = listing.brand;
+      if (data.price === null && listing.price !== null) patch.price = listing.price;
+      if (!data.condition && listing.condition) patch.condition = listing.condition;
+      if (!data.body.trim() && listing.description) patch.body = listing.description;
+      if (data.includes.length === 0 && listing.includes.length) patch.includes = listing.includes;
+      if (!data.colourway && listing.colourway) patch.colourway = listing.colourway;
+      if (!data.styleCode && listing.styleCode) patch.styleCode = listing.styleCode;
+      // A brand-new product's category is just the first one in the list, so the AI's guess wins.
+      if (current.isNew && !data.title.trim() && listing.category && store.categories().some((category) => category.slug === listing.category)) {
+        patch.category = listing.category;
+      }
+      const count = Object.keys(patch).length;
+      if (count === 0) {
+        toast('Everything is already filled in, so nothing was changed.', { tone: 'info' });
+        return;
+      }
+      store.updateProduct(id, patch);
+      render();
+      toast(sample ? `Filled in ${count} details with sample text (the real AI runs on your live site).` : `Filled in ${count} details from the photo. Check them, especially the price.`, { tone: 'ok', timeout: 6000 });
+    } catch (error) {
+      toast(errorMessage(error), { tone: 'error' });
+    } finally {
+      const again = $<HTMLButtonElement>('[data-fill-ai]', el);
+      if (again) {
+        again.disabled = false;
+        setHtml(again, html`${icon('sparkles', 15)} Fill in from photo`);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- photos and video
@@ -471,6 +530,11 @@ export function productForm(store: Store, id: string, options: { compact?: boole
 
     if (target.closest('[data-add-photos]')) {
       addPhotos(await pickFiles({ accept: 'image/*', multiple: true }));
+      return;
+    }
+    const fill = target.closest<HTMLButtonElement>('[data-fill-ai]');
+    if (fill) {
+      fillFromPhoto(fill);
       return;
     }
     // Phones: tap a photo to show its buttons (tap again, or another photo, to hide them).

@@ -53,9 +53,13 @@ What's inside:
 - **Products:** search, filters (available, reserved, sold, drafts, on the home page, needs attention,
   not live yet), grid or list, change a status or feature a piece in one tap, and edit lots at once
   (select them, then mark sold, feature, hide, move category or delete).
+- **Add from photos:** drop in photos, one piece per photo, and each becomes a listing filled in by AI
+  (category, name, brand, condition, what's included, a description and a suggested price). Check them,
+  change anything, then add them all at once. See below.
 - **Product editor:** drop in photos (they're shrunk to 1600px and cleaned of location data), drag to
-  reorder or pick the cover, add a video, and fill in every detail. **Duplicate** copies a piece so a
-  similar one takes seconds to list.
+  reorder or pick the cover, add a video, and fill in every detail. **Fill in from photo** asks the AI
+  about the cover photo and fills in whatever is still empty. **Duplicate** copies a piece so a similar
+  one takes seconds to list.
 - **Site text:** every heading, button and line of text, grouped by page, each with its default and a
   **Show on page** button. In titles, words in **stars** become the italic accent.
 - **Categories:** rename, drag to reorder, add descriptions, add or delete (products move with them).
@@ -87,12 +91,33 @@ http://localhost:4321/admin/ and choose **Edit this PC's files**. Changes are sa
 go live when it's pushed to GitHub. The previous editor (Sveltia CMS) is still at `/admin/cms/` if you
 ever need it.
 
+### Add from photos (AI)
+
+In the store admin, open **Add from photos** (or press it on the Overview or Products page):
+
+1. Choose or drop in photos, one piece per photo (up to 40 at a time). Clear, bright shots work best,
+   and showing the box or tags lets it tick **What's included**.
+2. Each photo becomes a card. The AI picks the category and fills in the name, brand, condition, what's
+   included, a short description and a **suggested price** (a typical UK resale price; use it as a
+   starting point). Anything it's unsure about says **Best guess: check it**.
+3. Change whatever you like on the cards, then press **Add products**. Switch on **Add as drafts** to
+   keep them hidden until you've checked them in Products. Press **Publish** to put them live.
+
+It runs on your Cloudflare account's free AI allowance: about 150 photos a day, at no cost (it simply
+pauses until the next day if you ever use it all). Only your admin key can use it. On this PC (the local
+preview) it gives sample suggestions instead, based on the file names.
+
+Coming later: whole folders at once (several photos per piece, with the name and price taken from the
+folder name), for clothing.
+
 ### Video ads at the top of the home page
 
-The top of the home page plays your **featured** products like stories: full screen, muted,
-looping, with progress bars. Visitors can tap to skip, hold to pause and turn the sound on. Products
-with a video play first. Products without one get a slow cinematic zoom on their photo instead, so it
-works even before you've filmed anything. The Overview shows which pieces are in the ads, in order.
+The top of the home page plays your **featured** products like stories: muted, looping, with progress
+bars. Visitors can tap to skip, hold to pause and turn the sound on. Each ad shows the whole product
+(photo or video) in its own frame over a soft blurred background, with the words beside it on computers
+and underneath on phones, so nothing is cut off or covered, and it always fits the first screen.
+Products with a video play first; without one, the photo gently floats. The Overview shows which pieces
+are in the ads, in order.
 
 To add one: open the product, switch on **Feature on the home page**, add a **Video** if you have one,
 and publish. Keep clips short and small; CapCut or TikTok's "save video" at 720p works well.
@@ -183,7 +208,8 @@ its page. Change the headline, tagline, ticker and any other wording in the stor
 or Site text; the reel follows your featured products automatically. All colours and fonts are set at the top of
 `src/styles/global.css`.
 
-Run `npm run check`, `npm run build`, `npm run test:import` and `npm run test:studio` before publishing. Check phone and
+Run `npm run check`, `npm run build`, `npm run test:import` and `npm run test:studio` (the Studio and the
+AI) before publishing. Check phone and
 desktop browsing, filters, sorting, galleries and sharing. No deployment or GitHub connection is
 created by these commands.
 
@@ -215,6 +241,7 @@ files, and you push them with `git`.
 | Website code, products and photos | This GitHub repository | Free |
 | Hosting | Cloudflare Pages, rebuilt automatically on every change ([setup](docs/share-with-friends.md)) | Free |
 | Store admin | The Studio at `/admin/` (part of this site, saves to GitHub with your admin key); the classic [Sveltia CMS](https://sveltiacms.app) editor at `/admin/cms/` | Free |
+| AI for "Add from photos" | Cloudflare Workers AI, through `functions/api/identify.ts` | Free daily allowance |
 
 **Limits:** Cloudflare Pages allows unlimited visitors, 20,000 files per site and 500 rebuilds a month.
 The tighter limit is GitHub, which recommends keeping a repository under about 1 GB: roughly
