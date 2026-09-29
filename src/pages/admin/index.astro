@@ -30,7 +30,7 @@ const config = {
   dev: import.meta.env.DEV,
   siteName: storeName(),
 };
-// Safe inside a <script> tag.
+// Escaped so the JSON can sit safely inside the script tag below.
 const configJson = JSON.stringify(config).replace(/</g, '\\u003c');
 ---
 
