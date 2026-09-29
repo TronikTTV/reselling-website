@@ -268,6 +268,7 @@ export function productsView(context: Context): View {
           </div>
           <div class="st-page-head__actions">
             <a class="st-btn st-btn--primary" href="#/add">${icon('sparkles', 17)} Add from photos</a>
+            <a class="st-btn st-btn--ghost st-hide-touch" href="#/add/folders">${icon('folder', 17)} Add from folders</a>
             <a class="st-btn st-btn--ghost" href="#/products/new">${icon('plus', 17)} Add by hand</a>
           </div>
         </header>

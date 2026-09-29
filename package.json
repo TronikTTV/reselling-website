@@ -12,7 +12,7 @@
     "import:web": "node scripts/import-web.mjs",
     "import:catalog": "node scripts/collect-supplier.mjs",
     "test:import": "node --test scripts/import-web.test.mjs scripts/supplier-parsers.test.mjs",
-    "test:studio": "node --test scripts/studio.test.mjs scripts/identify.test.mjs"
+    "test:studio": "node --test scripts/studio.test.mjs scripts/identify.test.mjs scripts/folder-import.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

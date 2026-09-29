@@ -11,6 +11,7 @@ import { icon } from '../lib/icons.ts';
 import { preparePhoto, type PreparedPhoto } from '../lib/media.ts';
 import type { Context, View } from '../shell.ts';
 import { dropZone, errorMessage, pickFiles, toast } from '../ui.ts';
+import { addTabs } from './add-tabs.ts';
 import { CONDITIONS, INCLUDES } from './product-form.ts';
 
 type ItemState = 'preparing' | 'thinking' | 'ready' | 'error';
@@ -365,6 +366,7 @@ export function addPhotosView(context: Context): View {
     setHtml(
       el,
       html`
+        ${addTabs('photos')}
         <header class="st-page-head">
           <div>
             <p class="st-eyebrow">${icon('sparkles', 14)} AI listing</p>
@@ -374,7 +376,6 @@ export function addPhotosView(context: Context): View {
           </div>
           <div class="st-page-head__actions">
             ${items.length ? html`<button type="button" class="st-btn st-btn--glass" data-choose>${icon('upload', 16)} Add more photos</button>` : ''}
-            <a class="st-btn st-btn--ghost" href="#/products/new">${icon('edit', 16)} Add one by hand</a>
           </div>
         </header>
         ${

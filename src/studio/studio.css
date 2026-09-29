@@ -4782,6 +4782,250 @@ img.st-thumb.is-missing {
 }
 
 /* ==========================================================================
+   Add products: tabs, and Add from folders
+   ========================================================================== */
+@media (pointer: coarse) {
+  .st-hide-touch {
+    display: none !important;
+  }
+}
+
+.st-add-tabs {
+  display: flex;
+  gap: 6px;
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: 18px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  background: var(--surface);
+  scrollbar-width: none;
+}
+
+.st-add-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.st-add-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.2s ease, background 0.25s var(--ease);
+}
+
+.st-add-tab:hover {
+  color: var(--text);
+}
+
+.st-add-tab.is-active {
+  background: var(--surface-4);
+  color: var(--text);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+.st-add-tab.is-active .i {
+  color: var(--accent-3);
+}
+
+.st-add-tab small {
+  padding: 1px 6px;
+  border-radius: var(--pill);
+  background: var(--grad-soft);
+  color: #cfd8ff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.st-folder-help {
+  align-content: start;
+}
+
+.st-tree,
+.st-txt {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: #d8d8e0;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.st-txt {
+  color: #cfd8ff;
+  white-space: pre-wrap;
+}
+
+.st-bulk-options {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 900px) {
+  .st-bulk-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.st-bulk-list {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 120px;
+}
+
+.st-bulk-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  animation: st-rise 0.4s var(--ease) both;
+}
+
+@media (min-width: 720px) {
+  .st-bulk-row {
+    grid-template-columns: 112px minmax(0, 1fr);
+    padding: 14px;
+  }
+}
+
+.st-bulk-row__media {
+  position: relative;
+  align-self: start;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--surface-3);
+}
+
+.st-bulk-row__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.st-bulk-row__count {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--pill);
+  background: rgb(0 0 0 / 0.65);
+  font-size: 0.7rem;
+  font-weight: 650;
+  backdrop-filter: blur(6px);
+}
+
+.st-bulk-row__main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-right: 34px;
+}
+
+.st-bulk-row__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  gap: 8px;
+}
+
+.st-bulk-row__name .st-input {
+  font-weight: 600;
+}
+
+.st-bulk-row__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+}
+
+.st-bulk-row__grid .st-field__label {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.st-bulk-row__grid .st-input,
+.st-bulk-row__grid select {
+  min-height: 40px;
+  padding-block: 8px;
+  font-size: 15px;
+}
+
+.st-bulk-row__bio summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.st-bulk-row__bio summary::-webkit-details-marker {
+  display: none;
+}
+
+.st-bulk-row__bio[open] summary {
+  margin-bottom: 8px;
+}
+
+.st-bulk-row__notes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.st-bulk-row__path {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-bulk-row__remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+@media (max-width: 520px) {
+  .st-bulk-row__top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==========================================================================
    Reduced motion: fades stay, movement goes
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -4843,6 +5087,7 @@ img.st-thumb.is-missing {
   }
 
   .st-ai-card,
+  .st-bulk-row,
   .st-add__foot {
     animation-name: st-fade !important;
   }

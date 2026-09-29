@@ -44,7 +44,7 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 | `src/content/products/<slug>/index.md` | One folder per product: front matter + description, with its photos and video next to it. Written by the Studio. |
 | `src/content.config.ts` | Product schema (deliberately forgiving so one bad entry can't break the build). |
 | `src/data/settings.json`, `categories.json`, `content.json` | Store settings, the category list, and the site's wording (all edited in the Studio). |
-| `src/studio/` | The admin Studio, vanilla TypeScript: `main.ts` (sign-in), `shell.ts` (frame, Publish bar, live status), `store.ts` (data, unpublished changes, publishing), `views/` (Overview, Products, product editor, `add-photos.ts` "Add from photos", Site text, Categories, Settings, and `live.ts`, the live editor), `lib/backend.ts` (GitHub API, or this PC's files), `lib/ai.ts` (asking /api/identify), `lib/product-file.ts` (reading/writing product files), `studio.css`. |
+| `src/studio/` | The admin Studio, vanilla TypeScript: `main.ts` (sign-in), `shell.ts` (frame, Publish bar, live status), `store.ts` (data, unpublished changes, publishing), `views/` (Overview, Products, product editor, "Add products": `add-photos.ts` from photos with AI and `add-folders.ts` from folders, Site text, Categories, Settings, and `live.ts`, the live editor), `lib/backend.ts` (GitHub API, or this PC's files), `lib/ai.ts` (asking /api/identify), `lib/folder-import.ts` (reading product folders and their text files), `lib/product-file.ts` (reading/writing product files), `studio.css`. |
 | `functions/api/identify.ts`, `wrangler.toml` | The only server code: a Cloudflare Pages Function for "Add from photos" (logic in `src/lib/identify.ts`), using the account's free Workers AI allowance through the `AI` binding in `wrangler.toml`. Only works with the owner's admin key. |
 | `src/cms/config.yml` | Classic editor fields, served as `/admin/config.yml` (its Site text section is generated from `copy-fields.ts`). |
 | `scripts/import-products.mjs` | Bulk import from the local `import/` folder (`npm run import`). |
@@ -136,7 +136,7 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 ## Before you finish
 
 - `npm run build` succeeds, `npm run check` reports 0 errors and `npm run test:studio` passes (it also
-  tests /api/identify).
+  tests /api/identify and the folder reader).
 - Home, Shop all (search, category and brand filters, sort, "Hide sold", Show more), a category page and
   a product page (swipe, thumbnails, full-screen viewer, share button) all still work, on phone and
   desktop widths.

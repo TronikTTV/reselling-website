@@ -53,9 +53,8 @@ What's inside:
 - **Products:** search, filters (available, reserved, sold, drafts, on the home page, needs attention,
   not live yet), grid or list, change a status or feature a piece in one tap, and edit lots at once
   (select them, then mark sold, feature, hide, move category or delete).
-- **Add from photos:** drop in photos, one piece per photo, and each becomes a listing filled in by AI
-  (category, name, brand, condition, what's included, a description and a suggested price). Check them,
-  change anything, then add them all at once. See below.
+- **Add products:** from photos (AI fills in each listing), from folders (one folder per product with
+  its photos and a text file), or one by hand. See below.
 - **Product editor:** drop in photos (they're shrunk to 1600px and cleaned of location data), drag to
   reorder or pick the cover, add a video, and fill in every detail. **Fill in from photo** asks the AI
   about the cover photo and fills in whatever is still empty. **Duplicate** copies a piece so a similar
@@ -91,9 +90,49 @@ http://localhost:4321/admin/ and choose **Edit this PC's files**. Changes are sa
 go live when it's pushed to GitHub. The previous editor (Sveltia CMS) is still at `/admin/cms/` if you
 ever need it.
 
+### Add from folders (bulk)
+
+On a computer, open **Add products → From folders** in the store admin and choose (or drag in) a folder
+with one folder per product inside it:
+
+```text
+Stock
+  Trainers
+    Nike Dunk Low Panda
+      1.jpg  2.jpg  3.jpg
+      details.txt
+    Jordan 4 Military Black £180
+      front.jpg  side.jpg
+  Clothing
+    Corteiz Alcatraz Hoodie
+      ...
+```
+
+The text file (any name ending in `.txt`) looks like this, and **Download an example text file** gives
+you one to copy:
+
+```text
+Name: Nike Dunk Low Retro Panda
+Price: 120
+Colourway: White/Black
+Code: DD1391-100
+Size: UK 9
+Bio: Brand new in the box.
+```
+
+- Only **Name** is needed; leave out any line you don't have. **Bio** is optional, and there's a switch
+  to add them all without descriptions.
+- No labels? Put the name, price, colourway and code on their own lines, in that order, then the bio.
+- No text file? The folder name becomes the name, with the price if it ends in one (`Jordan 4 £180`).
+- Folders inside **Trainers**, **Clothing** and so on go in that category; others use the category you
+  pick at the top. The first photo (or one named `cover`) is the cover, up to 12 photos each.
+- Check the list, change anything, then **Add products** and **Publish**. Up to 100 products at a time.
+  Phones can't pick folders, so use a computer (Chrome, Edge or Firefox).
+
 ### Add from photos (AI)
 
-In the store admin, open **Add from photos** (or press it on the Overview or Products page):
+In the store admin, open **Add products → From photos** (or press **Add from photos** on the Overview or
+Products page):
 
 1. Choose or drop in photos, one piece per photo (up to 40 at a time). Clear, bright shots work best,
    and showing the box or tags lets it tick **What's included**.

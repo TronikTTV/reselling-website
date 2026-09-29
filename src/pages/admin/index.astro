@@ -6,6 +6,7 @@
 import '@fontsource-variable/geist';
 import '@fontsource/instrument-serif/400-italic.css';
 import '../../studio/studio.css';
+import { root } from 'astro:config/server';
 import { readFileSync } from 'node:fs';
 import { adminKeyUrl, githubBranch, githubRepository } from '../../lib/repository';
 import { url } from '../../lib/url';
@@ -14,7 +15,7 @@ import { url } from '../../lib/url';
 // doesn't reload the Studio page.
 function storeName() {
   try {
-    return String(JSON.parse(readFileSync('src/data/settings.json', 'utf8')).siteName || '').trim() || 'Your store';
+    return String(JSON.parse(readFileSync(new URL('src/data/settings.json', root), 'utf8')).siteName || '').trim() || 'Your store';
   } catch {
     return 'Your store';
   }

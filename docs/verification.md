@@ -1,5 +1,20 @@
 # Storefront refresh
 
+## Add from folders (bulk) — 29 September 2026
+
+- New in the store admin: **Add products → From folders**. One folder per product with its photos and a
+  text file (name, price, colourway, code, and optional size, brand, condition, category and bio; labelled
+  lines or plain lines in order). Without a text file the folder name gives the name and price. Parent
+  folders like "Trainers" set the category.
+- `npm run test:studio` has 5 more tests for the folder reader (grouping and photo order, Windows paths,
+  labelled and plain text files, multi-line bios, prices, folder names, categories, brands).
+- In "Edit this PC's files" mode a test folder of three products (labelled file with a bio, no file,
+  plain lines) came out as expected, "Add 3 products" created them with their photos, and publishing
+  wrote correct product folders whose pages showed the code, colourway and size (then removed). Checked at
+  1280px and 375px (phones explain that picking folders needs a computer).
+- Fixed on the way: `/admin/catalog.json`, `/admin/build.json` and the admin page now read files from the
+  project folder (`astro:config/server` root) rather than wherever the build was started.
+
 ## Phone/computer check, whole-product ads and Add from photos — 28 September 2026
 
 - **Layout check:** home, shop, a category, two product pages and the 404 page were measured at 320, 360,

@@ -8,17 +8,17 @@ export interface BuildInfo {
   builtAt: string;
 }
 
-function localCommit(): string {
+function localCommit(cwd?: string): string {
   try {
-    return execSync('git rev-parse HEAD', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execSync('git rev-parse HEAD', { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   } catch {
     return '';
   }
 }
 
 /** Cloudflare Pages and GitHub Actions say which commit they're building; locally, ask git. */
-export const buildInfo = (): BuildInfo => ({
-  commit: process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || localCommit(),
+export const buildInfo = (projectRoot?: string): BuildInfo => ({
+  commit: process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || localCommit(projectRoot),
   builtAt: new Date().toISOString(),
 });
 

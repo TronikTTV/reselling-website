@@ -6,8 +6,10 @@
 // Only published products are included: drafts must never appear on the public site, so the Studio
 // fetches them from GitHub after signing in.
 import type { APIRoute } from 'astro';
+import { root as rootUrl } from 'astro:config/server';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildInfo, gitBlobSha } from '../../lib/build-info';
 import { getAllProducts } from '../../lib/catalog';
 import { productPhoto } from '../../lib/images';
@@ -25,7 +27,8 @@ const DATA_FILES = ['src/data/settings.json', 'src/data/categories.json', 'src/d
 const slash = (value: string) => value.replace(/\\/g, '/');
 
 export const GET: APIRoute = async () => {
-  const root = process.cwd();
+  // The project folder (product paths are relative to it), wherever the build was started from.
+  const root = fileURLToPath(rootUrl);
   const products = await Promise.all(
     (await getAllProducts()).map(async (product) => {
       const entryFile = path.resolve(root, product.filePath ?? '');
@@ -69,7 +72,7 @@ export const GET: APIRoute = async () => {
     }
   });
 
-  return new Response(JSON.stringify({ ...buildInfo(), products, data }), {
+  return new Response(JSON.stringify({ ...buildInfo(root), products, data }), {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
 };
