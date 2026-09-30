@@ -139,7 +139,7 @@ const text = (value: unknown, max: number) =>
 export function tidy(raw: Record<string, unknown>, categories: Category[]): Listing {
   const slugs = new Map(categories.map((category) => [category.slug.toLowerCase(), category.slug]));
   const names = new Map(categories.map((category) => [category.name.toLowerCase(), category.slug]));
-  const wanted = text(raw.category, 60).toLowerCase();
+  const wanted = text(raw.category, 160).toLowerCase();
   const category = slugs.get(wanted) ?? names.get(wanted) ?? categories.find((item) => wanted && (item.name.toLowerCase().includes(wanted) || wanted.includes(item.slug)))?.slug ?? '';
 
   const includes = (Array.isArray(raw.includes) ? raw.includes : [])
@@ -226,7 +226,8 @@ export async function identifyPhoto(request: Request, env: IdentifyEnv): Promise
     return json({ error: 'Send one photo (JPEG, PNG or WebP) of up to about 1.8 MB.' }, 400);
   }
   const categories = (Array.isArray(body.categories) ? body.categories : [])
-    .map((item) => ({ slug: text((item as Category)?.slug, 60), name: text((item as Category)?.name, 80) }))
+    // Sub-categories have longer addresses and names ("shoes/nike/p-6000", "Trainers & Shoes › Nike › P-6000").
+    .map((item) => ({ slug: text((item as Category)?.slug, 160), name: text((item as Category)?.name, 200) }))
     .filter((item) => /^[a-z0-9-]+$/.test(item.slug) && item.name)
     .slice(0, 60);
   if (categories.length === 0) return json({ error: 'The store has no categories to choose from.' }, 400);

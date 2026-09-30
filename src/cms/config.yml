@@ -312,8 +312,8 @@ collections:
               - name: slug
                 label: Web address
                 widget: string
-                pattern: ['^[a-z0-9]+(-[a-z0-9]+)*$', 'Lowercase letters, numbers and dashes only, e.g. sunglasses']
-                hint: "Used in links, e.g. watches → /category/watches/. Don't change it once products use this category."
+                pattern: ['^[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$', 'Lowercase letters, numbers and dashes, with / before a sub-category, e.g. sunglasses or shoes/nike']
+                hint: "Used in links, e.g. watches → /category/watches/. A sub-category starts with its category's address: shoes/nike → /category/shoes/nike/. Don't change it once products use this category."
               - name: description
                 label: Description
                 widget: text

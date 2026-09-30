@@ -39,11 +39,11 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 | `src/styles/global.css` | All storefront styling. Design tokens (colours, gradients, fonts, radii, easing) are at the top in `:root`. Start here. Fonts are Geist Variable and Instrument Serif italic from `@fontsource`, imported in `BaseLayout.astro`. |
 | `src/layouts/BaseLayout.astro` | `<html>`/`<head>`, meta and link-preview tags, header and footer. |
 | `src/components/` | `Header` (with the search sheet), `Footer`, `AdReel` (story-style video/photo ads at the top of the home page), `Marquee` (ticker), `ProductRail` (swipe row), `ProductCard`, `ProductBrowser` (search/filter/sort + grid), `Gallery` (photos + full-screen viewer), `CategoryTiles` (bento grid), `ShareButton`, `Icon` (all icons), `Copy` (a piece of editable site text), `Words` (text that never splits a hyphenated word across lines). |
-| `src/pages/` | `index` (home), `shop` (all products), `category/[slug]`, `product/[slug]`, `404`, `manage` (old dashboard address, forwards to `/admin/`), `admin/` (the Studio page; `cms/` the classic editor; `catalog.json` and `build.json`, data the Studio reads; `config.yml` for the classic editor). |
-| `src/lib/` | `catalog.ts` (loading and sorting products), `site.ts` (settings and categories), `copy.ts` + `copy-fields.ts` (site wording, its defaults and how the Studio labels it), `images.ts` (photo sizes), `url.ts` (links), `format.ts` + `labels.ts` (prices, status and "where it's from" labels), `contact.ts` (message links), `search.ts`, `videos.ts`, `build-info.ts`, `identify.ts` (the AI behind "Add from photos", run on Cloudflare). |
+| `src/pages/` | `index` (home), `shop` (all products), `category/[...slug]` (categories and sub-categories), `product/[slug]`, `404`, `manage` (old dashboard address, forwards to `/admin/`), `admin/` (the Studio page; `cms/` the classic editor; `catalog.json` and `build.json`, data the Studio reads; `config.yml` for the classic editor). |
+| `src/lib/` | `catalog.ts` (loading and sorting products; `categoryOf`, `categoryTrail`, `isInCategory`), `site.ts` (settings and categories), `category-tree.ts` (sub-categories, shared with the Studio), `copy.ts` + `copy-fields.ts` (site wording, its defaults and how the Studio labels it), `images.ts` (photo sizes), `url.ts` (links), `format.ts` + `labels.ts` (prices, status and "where it's from" labels), `contact.ts` (message links), `search.ts`, `videos.ts`, `build-info.ts`, `identify.ts` (the AI behind "Add from photos", run on Cloudflare). |
 | `src/content/products/<slug>/index.md` | One folder per product: front matter + description, with its photos and video next to it. Written by the Studio. |
 | `src/content.config.ts` | Product schema (deliberately forgiving so one bad entry can't break the build). |
-| `src/data/settings.json`, `categories.json`, `content.json` | Store settings, the category list, and the site's wording (all edited in the Studio). |
+| `src/data/settings.json`, `categories.json`, `content.json` | Store settings, the category list, and the site's wording (all edited in the Studio). A sub-category's `slug` starts with its parent's (`shoes/nike/p-6000`); that path is also what a product's `category` holds, and there's no separate parent field. |
 | `src/studio/` | The admin Studio, vanilla TypeScript: `main.ts` (sign-in), `shell.ts` (frame, Publish bar, live status), `store.ts` (data, unpublished changes, publishing), `views/` (Overview, Products, product editor, "Add products": `add-photos.ts` from photos with AI and `add-folders.ts` from folders, Site text, Categories, Settings, and `live.ts`, the live editor), `lib/backend.ts` (GitHub API, or this PC's files; keeps uploads under GitHub's limits of 80 a minute and 500 an hour, waits and retries when GitHub asks, and remembers what's uploaded so a retry carries on), `lib/ai.ts` (asking /api/identify), `lib/folder-import.ts` (reading product folders and their text files), `lib/product-file.ts` (reading/writing product files), `studio.css`. |
 | `functions/api/identify.ts`, `wrangler.toml` | The only server code: a Cloudflare Pages Function for "Add from photos" (logic in `src/lib/identify.ts`), using the account's free Workers AI allowance through the `AI` binding in `wrangler.toml`. Only works with the owner's admin key. |
 | `src/cms/config.yml` | Classic editor fields, served as `/admin/config.yml` (its Site text section is generated from `copy-fields.ts`). |
@@ -73,8 +73,9 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
    the classic editor pick it up. In titles, words in `*stars*` (or else the last word) get the italic
    accent (`<Copy name="…" accent />`).
 4. **Keep the hooks the scripts rely on**, whatever the markup ends up looking like:
-   - `ProductCard` outer element: `data-product`, `data-search`, `data-category`, `data-brand`,
-     `data-price`, `data-status`, `data-date`, `data-title`, and the `hidden` prop.
+   - `ProductCard` outer element: `data-product`, `data-search`, `data-category` (the product's deepest
+     category, e.g. `shoes/nike/p-6000`; the filter treats a category as including its sub-categories),
+     `data-brand`, `data-price`, `data-status`, `data-date`, `data-title`, and the `hidden` prop.
    - `ProductBrowser`: `[data-browser]` with `data-page-size`, `[data-controls]` (a `<form>` whose fields
      are named `q`, `category`, `brand`, `sort`, `available`), `[data-grid]`, `[data-count]`,
      `[data-empty]`, `[data-more]`, `[data-clear]`.
@@ -136,7 +137,7 @@ Node 22.12 or newer (the deploy workflow uses Node 24).
 ## Before you finish
 
 - `npm run build` succeeds, `npm run check` reports 0 errors and `npm run test:studio` passes (it also
-  tests /api/identify and the folder reader).
+  tests /api/identify, the folder reader and sub-categories).
 - Home, Shop all (search, category and brand filters, sort, "Hide sold", Show more), a category page and
   a product page (swipe, thumbnails, full-screen viewer, share button) all still work, on phone and
   desktop widths.

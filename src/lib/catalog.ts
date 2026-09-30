@@ -1,11 +1,12 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { isWithin, resolveCategory, trailOf } from './category-tree';
 import { categories, OTHER_CATEGORY, settings, type Category } from './site';
 
 export type Product = CollectionEntry<'products'>;
 
 export interface CategorySummary {
   category: Category;
-  /** How many listed products are in this category. */
+  /** How many listed products are in this category, counting its sub-categories. */
   count: number;
   /** Product whose first photo represents the category (newest unsold one). */
   cover?: Product;
@@ -13,9 +14,22 @@ export interface CategorySummary {
 
 const categoryBySlug = new Map(categories.map((category) => [category.slug, category]));
 
-/** The category a product belongs to. Unknown or missing categories become "Other". */
+/**
+ * The category a product belongs to: its sub-category when it has one ("shoes/nike/p-6000"). A
+ * sub-category that isn't in the list falls back to the nearest one above it that is; anything else
+ * becomes "Other".
+ */
 export const categoryOf = (product: Product): Category =>
-  categoryBySlug.get(product.data.category) ?? OTHER_CATEGORY;
+  categoryBySlug.get(resolveCategory(product.data.category, categoryBySlug)) ?? OTHER_CATEGORY;
+
+/** A category and the ones above it, top first: Trainers & Shoes › Nike › P-6000. */
+export const categoryTrail = (category: Category): Category[] => (category === OTHER_CATEGORY ? [category] : trailOf(category.slug, categoryBySlug));
+
+/** A category's own sub-categories, in order. */
+export const subcategoriesOf = (category: Category): Category[] => categories.filter((item) => item.parent === category.slug);
+
+/** Whether a product is in a category or any of its sub-categories. */
+export const isInCategory = (product: Product, category: Category) => isWithin(categoryOf(product).slug, category.slug);
 
 const newestFirst = (a: Product, b: Product) =>
   (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0) || a.data.title.localeCompare(b.data.title);
@@ -46,19 +60,18 @@ export const getListedProducts = cached(async () => {
   return settings.hideSoldItems ? all.filter((product) => product.data.status !== 'sold') : all;
 });
 
-/** Categories in the order set in the admin page, with product counts. "Other" is only added when needed. */
+/**
+ * Every category (sub-categories straight after their parent) in the order set in the admin page, with
+ * product counts that include sub-categories. "Other" is only added when needed. For just the top level,
+ * filter on `category.depth === 0`.
+ */
 export const getCategorySummaries = cached(async (): Promise<CategorySummary[]> => {
-  const bySlug = new Map<string, Product[]>();
-  for (const product of await getListedProducts()) {
-    const slug = categoryOf(product).slug;
-    bySlug.set(slug, [...(bySlug.get(slug) ?? []), product]);
-  }
-
+  const listed = await getListedProducts();
   const list = [...categories];
-  if (bySlug.has(OTHER_CATEGORY.slug) && !categoryBySlug.has(OTHER_CATEGORY.slug)) list.push(OTHER_CATEGORY);
+  if (listed.some((product) => categoryOf(product) === OTHER_CATEGORY) && !categoryBySlug.has(OTHER_CATEGORY.slug)) list.push(OTHER_CATEGORY);
 
   return list.map((category) => {
-    const products = bySlug.get(category.slug) ?? [];
+    const products = listed.filter((product) => isWithin(categoryOf(product).slug, category.slug));
     const withPhotos = products.filter((product) => product.data.images.length > 0);
     return {
       category,

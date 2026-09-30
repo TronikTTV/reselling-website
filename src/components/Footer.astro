@@ -10,7 +10,7 @@ import { categoryUrl, shopUrl, url } from '../lib/url';
 const dm = primaryContact();
 const handle = instagramHandle();
 const profiles = contactLinks();
-const topCategories = (await getCategorySummaries()).filter((summary) => summary.count > 0).slice(0, 5);
+const topCategories = (await getCategorySummaries()).filter((summary) => summary.count > 0 && summary.category.depth === 0).slice(0, 5);
 const year = new Date().getFullYear();
 ---
 

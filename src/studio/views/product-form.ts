@@ -9,7 +9,7 @@ import { megabytes, preparePhoto, prepareVideo, videoPoster } from '../lib/media
 import type { ProductData, ProductField } from '../lib/product-file.ts';
 import { sortable } from '../lib/sortable.ts';
 import type { Product, Reason, Store } from '../store.ts';
-import { dropZone, errorMessage, hydrateMedia, pickFiles, thumb, toast } from '../ui.ts';
+import { categoryOptions, dropZone, errorMessage, hydrateMedia, pickFiles, thumb, toast } from '../ui.ts';
 
 // Keep in step with src/cms/config.yml.
 export const CONDITIONS = ['Brand new', 'New with tags', 'Like new', 'Very good', 'Good', 'Fair'];
@@ -127,7 +127,7 @@ export function productForm(store: Store, id: string, options: { compact?: boole
               <span class="st-field__label">Category</span>
               <span class="st-select st-select--block">
                 <select ${field('category')}>
-                  ${categories.map((category) => html`<option value="${category.slug}" ${category.slug === data.category ? 'selected' : ''}>${category.name}</option>`)}
+                  ${categoryOptions(store, data.category)}
                   ${!knownCategory ? html`<option value="${data.category}" selected>${data.category ? `${data.category} (not a category)` : 'Other'}</option>` : ''}
                 </select>
                 ${icon('chevron-down', 14)}

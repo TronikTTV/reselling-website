@@ -1,5 +1,8 @@
 // Drag to reorder (photos, categories, ticker phrases). With a mouse, drag straight away; on a phone,
 // press and hold for a moment first, so swiping still scrolls the page.
+/** Presses already taken by a list inside another one (sub-categories), so the outer list ignores them. */
+const claimed = new WeakSet<Event>();
+
 export function sortable(
   container: HTMLElement,
   options: { item: string; onSort: (keys: string[]) => void; key?: (element: HTMLElement) => string },
@@ -57,7 +60,8 @@ export function sortable(
     const target = event.target instanceof Element ? event.target : null;
     if (!target || target.closest('button:not([data-drag]), input, select, textarea, a[href]:not([data-drag])')) return;
     const element = target.closest<HTMLElement>(options.item);
-    if (!element || !container.contains(element)) return;
+    if (!element || !container.contains(element) || claimed.has(event)) return;
+    claimed.add(event);
     drag = { element, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, started: false, before: order() };
     if (event.pointerType === 'touch') {
       document.addEventListener('touchmove', preventScroll, { passive: false });

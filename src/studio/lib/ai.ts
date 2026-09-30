@@ -60,7 +60,8 @@ export async function identify(store: Store, photo: Blob, filename = ''): Promis
       headers: { 'Content-Type': 'application/json', ...store.backend.authHeaders() },
       body: JSON.stringify({
         image,
-        categories: store.categories().map(({ slug, name }) => ({ slug, name })),
+        // Sub-categories go by their full name ("Trainers & Shoes › Nike") so the AI can pick the closest.
+        categories: store.categories().map(({ slug }) => ({ slug, name: store.categoryLabel(slug) })),
         currency: store.settings().currency,
         filename: filename.replace(/\.[^.]+$/, ''),
       }),

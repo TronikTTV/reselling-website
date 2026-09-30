@@ -12,6 +12,8 @@
 //
 // or just lines in this order: name, price, colourway, code, then the bio.
 
+import { parentOf } from '../../lib/category-tree.ts';
+
 export interface FolderEntry {
   /** Path inside the chosen folder, e.g. "Stock/Nike Dunk Low Panda/1.jpg". */
   path: string;
@@ -38,6 +40,8 @@ export interface ProductFolder {
   name: string;
   /** The folder it sits in (a category hint), or "". */
   parent: string;
+  /** Every folder above it, top first: ["Stock", "Trainers", "Nike"] (category and sub-category hints). */
+  parents: string[];
   photos: FolderEntry[];
   text?: FolderEntry;
 }
@@ -64,7 +68,7 @@ export function groupFolders(entries: FolderEntry[]): ProductFolder[] {
     let folder = folders.get(dir);
     if (!folder) {
       const parts = dir.split('/').filter(Boolean);
-      folder = { path: dir, name: parts[parts.length - 1] ?? '', parent: parts[parts.length - 2] ?? '', photos: [] };
+      folder = { path: dir, name: parts[parts.length - 1] ?? '', parent: parts[parts.length - 2] ?? '', parents: parts.slice(0, -1), photos: [] };
       folders.set(dir, folder);
     }
     if (PHOTO.test(file)) folder.photos.push({ path, file: entry.file });
@@ -215,6 +219,53 @@ export function matchCategory(hint: string, categories: { slug: string; name: st
   }
   const loose = categories.find((category) => slug(category.name).split('-').includes(wanted) || wanted.split('-').includes(category.slug));
   return loose?.slug ?? '';
+}
+
+/** "Trainers > Nike > P-6000" (or with / or ›) → ["Trainers", "Nike", "P-6000"]. */
+export const splitCategory = (value: string) =>
+  value
+    .split(/\s*[>›»/\\|]\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+/**
+ * The category for a chain of folder names, top first: ["Stock", "Trainers", "Nike", "P-6000"] →
+ * "shoes/nike/p-6000". Folders count from the first one that's a category (Trainers → Trainers &
+ * Shoes, or a sub-category's own name when only one has it); each folder inside that is its
+ * sub-category. With `create`, folders that aren't sub-categories yet become new ones (listed in
+ * `created`, top first); without it the deepest existing match is used. '' when nothing matches.
+ */
+export function matchCategoryPath(
+  chain: string[],
+  categories: { slug: string; name: string }[],
+  create = false,
+): { slug: string; created: { name: string; slug: string }[] } {
+  const known = [...categories];
+  const created: { name: string; slug: string }[] = [];
+  const named = (category: { slug: string; name: string }, wanted: string) => slug(category.name) === wanted || category.slug.split('/').pop() === wanted;
+  let current = '';
+  for (const part of chain) {
+    const name = part.trim();
+    const wanted = slug(name);
+    if (!wanted) continue;
+    if (!current) {
+      const top = matchCategory(name, known.filter((category) => !category.slug.includes('/')));
+      const deeper = known.filter((category) => category.slug.includes('/') && named(category, wanted));
+      current = top || (deeper.length === 1 ? deeper[0].slug : '');
+      continue;
+    }
+    const child = known.find((category) => parentOf(category.slug) === current && named(category, wanted));
+    if (child) {
+      current = child.slug;
+      continue;
+    }
+    if (!create) break;
+    const made = { name, slug: `${current}/${wanted}` };
+    created.push(made);
+    known.push(made);
+    current = made.slug;
+  }
+  return { slug: current, created };
 }
 
 const BRANDS = [

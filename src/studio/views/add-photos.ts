@@ -10,7 +10,7 @@ import { $, $$, html, pluralise, setHtml } from '../lib/dom.ts';
 import { icon } from '../lib/icons.ts';
 import { preparePhoto, type PreparedPhoto } from '../lib/media.ts';
 import type { Context, View } from '../shell.ts';
-import { dropZone, errorMessage, pickFiles, toast } from '../ui.ts';
+import { categoryOptions, dropZone, errorMessage, pickFiles, toast } from '../ui.ts';
 import { addTabs } from './add-tabs.ts';
 import { CONDITIONS, INCLUDES } from './product-form.ts';
 
@@ -238,7 +238,6 @@ export function addPhotosView(context: Context): View {
   const itemFields = (item: Item) => {
     const { data } = item;
     const busy = item.state === 'preparing' || item.state === 'thinking';
-    const categories = store.categories();
     const symbol = store.currencySymbol();
     return html`
       <label class="st-field">
@@ -250,7 +249,7 @@ export function addPhotosView(context: Context): View {
           <span class="st-field__label">Category</span>
           <span class="st-select st-select--block">
             <select data-f="category" ${busy ? 'disabled' : ''}>
-              ${categories.map((category) => html`<option value="${category.slug}" ${category.slug === data.category ? 'selected' : ''}>${category.name}</option>`)}
+              ${categoryOptions(store, data.category)}
             </select>
             ${icon('chevron-down', 14)}
           </span>

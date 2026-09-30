@@ -1561,6 +1561,14 @@ code {
   color: var(--warn);
 }
 
+.st-chip--new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--grad-soft);
+  color: #cfd8ff;
+}
+
 .st-pill {
   display: inline-flex;
   align-items: center;
@@ -3379,6 +3387,24 @@ img.st-thumb.is-missing {
   z-index: 5;
   border-color: var(--accent-3);
   box-shadow: 0 20px 44px rgb(0 0 0 / 0.6);
+}
+
+/* Sub-categories sit inside their category, indented, with a line down the side. */
+.st-cats--sub {
+  margin: 2px 10px 10px 20px;
+  padding-left: 12px;
+  border-left: 1px dashed var(--line-3);
+}
+
+.st-cats--sub .st-cat {
+  background: var(--surface-3);
+}
+
+@media (max-width: 520px) {
+  .st-cats--sub {
+    margin-left: 10px;
+    padding-left: 8px;
+  }
 }
 
 .st-cat__row {

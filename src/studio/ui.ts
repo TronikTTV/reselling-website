@@ -259,6 +259,11 @@ export function hydrateMedia(store: Store, root: ParentNode) {
   }
 }
 
+/** <option>s for every category, sub-categories named with the ones above them ("Trainers & Shoes › Nike"). */
+export function categoryOptions(store: Store, selected: string): Markup {
+  return html`${store.categories().map((category) => html`<option value="${category.slug}" ${category.slug === selected ? 'selected' : ''}>${store.categoryLabel(category.slug)}</option>`)}`;
+}
+
 /** Reads files chosen in a file picker or dropped on the page. */
 export function pickFiles(options: { accept: string; multiple?: boolean }): Promise<File[]> {
   return new Promise((resolve) => {

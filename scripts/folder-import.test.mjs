@@ -1,7 +1,7 @@
 // Tests for reading product folders ("Add from folders" in the Studio). Run with `npm run test:studio`.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fromFolderName, groupFolders, guessBrand, matchCategory, parseDetails, parsePrice } from '../src/studio/lib/folder-import.ts';
+import { fromFolderName, groupFolders, guessBrand, matchCategory, matchCategoryPath, parseDetails, parsePrice, splitCategory } from '../src/studio/lib/folder-import.ts';
 
 const CATEGORIES = [
   { slug: 'shoes', name: 'Trainers & Shoes' },
@@ -107,4 +107,32 @@ test('prices, folder names, categories and brands', () => {
   assert.equal(guessBrand('Nike SB Dunk'), 'Nike');
   assert.equal(guessBrand('New Balance 550'), 'New Balance');
   assert.equal(guessBrand('Nikon camera'), '');
+});
+
+test('sub-categories from folders: Trainers › Nike › P-6000', () => {
+  const categories = [...CATEGORIES, { slug: 'shoes/nike', name: 'Nike' }];
+  const chain = ['Stock', 'Trainers', 'Nike', 'P-6000'];
+
+  // Nike exists, P-6000 doesn't: made when asked to, otherwise the deepest match.
+  assert.deepEqual(matchCategoryPath(chain, categories, true), { slug: 'shoes/nike/p-6000', created: [{ name: 'P-6000', slug: 'shoes/nike/p-6000' }] });
+  assert.deepEqual(matchCategoryPath(chain, categories, false), { slug: 'shoes/nike', created: [] });
+  // Nothing exists below Trainers: both levels are made, top first.
+  assert.deepEqual(matchCategoryPath(chain, CATEGORIES, true).created.map((item) => item.slug), ['shoes/nike', 'shoes/nike/p-6000']);
+  // Existing sub-categories are found by name or address, whatever the capitals.
+  assert.equal(matchCategoryPath(['Trainers', 'NIKE'], categories, true).slug, 'shoes/nike');
+  // A sub-category's own name works on its own when only one category has it.
+  assert.equal(matchCategoryPath(['Nike'], categories, false).slug, 'shoes/nike');
+  // No category in the chain at all.
+  assert.deepEqual(matchCategoryPath(['Stock', 'Random'], categories, true), { slug: '', created: [] });
+  // The folders above each product are kept, top first.
+  const [folder] = groupFolders([{ path: 'Stock/Trainers/Nike/P-6000/Nike P-6000 Silver/1.jpg', file: new File(['x'], '1.jpg') }]);
+  assert.deepEqual(folder.parents, ['Stock', 'Trainers', 'Nike', 'P-6000']);
+});
+
+test('a category written in the text file can be a path', () => {
+  assert.deepEqual(splitCategory('Trainers > Nike > P-6000'), ['Trainers', 'Nike', 'P-6000']);
+  assert.deepEqual(splitCategory('shoes/nike'), ['shoes', 'nike']);
+  assert.deepEqual(splitCategory('Trainers › Nike'), ['Trainers', 'Nike']);
+  assert.deepEqual(splitCategory('Hats'), ['Hats']);
+  assert.equal(parseDetails('Name: P-6000\nCategory: Trainers > Nike').category, 'Trainers > Nike');
 });

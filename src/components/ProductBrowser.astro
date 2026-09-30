@@ -39,6 +39,9 @@ const brands = [...brandGroups]
   .sort((a, b) => a.label.localeCompare(b.label));
 
 const categoryOptions = (categories ?? []).filter((summary) => summary.count > 0);
+// Sub-categories sit under their category in the dropdown, indented: "  › Nike".
+const INDENT = '\u2003';
+const optionLabel = ({ category, count }: CategorySummary) => `${category.depth ? `${INDENT.repeat(category.depth)}› ` : ''}${category.name} (${count})`;
 const hasPrices = products.some((product) => product.data.price !== undefined);
 const hasSold = products.some((product) => product.data.status === 'sold');
 ---
@@ -62,8 +65,8 @@ const hasSold = products.some((product) => product.data.status === 'sold');
           {categoryOptions.length > 1 && (
             <select class="field" name="category" aria-label="Category">
               <option value="">All categories</option>
-              {categoryOptions.map(({ category, count }) => (
-                <option value={category.slug}>{`${category.name} (${count})`}</option>
+              {categoryOptions.map((summary) => (
+                <option value={summary.category.slug}>{optionLabel(summary)}</option>
               ))}
             </select>
           )}
@@ -195,7 +198,8 @@ const hasSold = products.some((product) => product.data.status === 'sold');
       const matches = items
         .filter(
           (item) =>
-            (!category || item.category === category) &&
+            // A category includes its sub-categories ("shoes" matches "shoes/nike").
+            (!category || item.category === category || item.category.startsWith(`${category}/`)) &&
             (!brand || item.brand === brand) &&
             (!hideSold || item.status !== 'sold') &&
             words.every((word) => item.search.includes(word)),

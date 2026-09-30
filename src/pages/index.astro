@@ -36,7 +36,7 @@ const reelIds = new Set(reelProducts.map((product) => product.id));
 const notInReel = inStock.filter((product) => !reelIds.has(product.id));
 const justDropped = notInReel.slice(0, 10);
 const more = notInReel.slice(10, 18);
-const summaries = (await getCategorySummaries()).filter((summary) => summary.count > 0);
+const summaries = (await getCategorySummaries()).filter((summary) => summary.count > 0 && summary.category.depth === 0);
 
 const previewPhoto = reelProducts[0]?.data.images[0];
 const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;

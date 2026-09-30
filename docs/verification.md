@@ -1,5 +1,29 @@
 # Storefront refresh
 
+## Sub-categories — 30 September 2026
+
+- Categories can hold sub-categories, as deep as needed (Trainers & Shoes › Nike › P-6000). A
+  sub-category's address starts with its parent's (`shoes/nike/p-6000`), which is also what products
+  store; `src/lib/category-tree.ts` has the shared rules. Missing levels are filled in, and a product in
+  an unknown sub-category shows under the nearest category above it.
+- Site: pages at `/category/shoes/nike/` (route `category/[...slug].astro`) with a breadcrumb and the
+  sub-categories as 44px chips; a category lists everything inside it. The header, footer, search sheet
+  and home tiles show top-level categories only (the right one is highlighted inside a sub-category).
+  Shop all's dropdown lists sub-categories indented, and choosing one includes its sub-categories.
+  Product pages show Home › Trainers & Shoes › Nike › P-6000, and "You might also like" starts with the
+  same sub-category. Search matches the category names above a product too.
+- Studio: Categories is a tree with + to add a sub-category, drag within each level, renaming an address
+  moves its sub-categories and products, deleting asks where products go (the parent by default).
+  Every category dropdown shows full names ("Trainers & Shoes › Nike"). Add from folders turns folders
+  like `Stock/Trainers/Nike/P-6000/` into sub-categories (made when adding, marked "new", with a
+  switch), and a text file can say `Category: Trainers > Nike`.
+- Checked with three temporary test products (removed afterwards): /category/shoes/ (All 62, Nike 3),
+  /category/shoes/nike/ and /p-6000/, a product page's breadcrumb and Category line, Shop all's filter
+  (62 / 3 / 2) at 375px and 670px with no sideways scrolling; in the Studio, adding Dunk Low inside
+  Nike, renaming nike → nike-sb (sub-categories and 3 products followed), deleting it (products to
+  Trainers & Shoes), and a nested folder upload, all then discarded.
+- `npm run test:studio`: 36 tests, including new ones for sub-category rules and folder matching.
+
 ## Publishing big uploads reliably — 30 September 2026
 
 - The owner's first big folder upload stopped part-way with a red message ("error 500" from GitHub):

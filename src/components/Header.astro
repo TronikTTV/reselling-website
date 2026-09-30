@@ -2,6 +2,7 @@
 import Copy from './Copy.astro';
 import Icon from './Icon.astro';
 import { getCategorySummaries } from '../lib/catalog';
+import { isWithin } from '../lib/category-tree';
 import { primaryContact } from '../lib/contact';
 import { copy } from '../lib/copy';
 import { settings } from '../lib/site';
@@ -12,8 +13,9 @@ interface Props {
 }
 
 const { currentCategory } = Astro.props;
-// Only categories that have something in them appear in the menu.
-const summaries = (await getCategorySummaries()).filter((summary) => summary.count > 0);
+// Only top-level categories that have something in them appear in the menu (sub-categories are on
+// their category's page).
+const summaries = (await getCategorySummaries()).filter((summary) => summary.count > 0 && summary.category.depth === 0);
 const dm = primaryContact();
 ---
 
@@ -57,7 +59,7 @@ const dm = primaryContact();
             <Copy name="nav.all" />
           </a>
           {summaries.map(({ category, count }) => (
-            <a class="chip" href={categoryUrl(category.slug)} aria-current={currentCategory === category.slug ? 'page' : undefined}>
+            <a class="chip" href={categoryUrl(category.slug)} aria-current={currentCategory && isWithin(currentCategory, category.slug) ? 'page' : undefined}>
               {category.name}
               <span class="chip__count">{count}</span>
             </a>

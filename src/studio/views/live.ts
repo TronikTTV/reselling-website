@@ -173,11 +173,12 @@ export function liveView(context: Context): View {
     const select = $<HTMLSelectElement>('[data-page]', el);
     if (!select) return;
     const products = store.productList().filter((product) => !product.isNew && !product.base.draft);
-    const categories = store.categories().filter((category) => products.some((product) => product.base.category === category.slug));
+    // Categories (and sub-categories) with something in them have a page.
+    const categories = store.categories().filter((category) => products.some((product) => store.inCategory(product.base.category, category.slug)));
     const options: [string, string][] = [
       ['/', 'Home page'],
       ['/shop/', 'Shop all'],
-      ...categories.map((category): [string, string] => [`/category/${category.slug}/`, `Category: ${category.name}`]),
+      ...categories.map((category): [string, string] => [`/category/${category.slug}/`, `Category: ${store.categoryLabel(category.slug)}`]),
       ...products.slice(0, 200).map((product): [string, string] => [`/product/${product.id}/`, `Product: ${product.base.title}`]),
       ['/404/', 'Page not found'],
     ];

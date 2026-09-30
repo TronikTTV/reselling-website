@@ -5,7 +5,7 @@ import type { Status } from '../lib/product-file.ts';
 import { missing } from '../insights.ts';
 import type { Context, View } from '../shell.ts';
 import type { Product } from '../store.ts';
-import { confirmDialog, hydrateMedia, thumb, toast } from '../ui.ts';
+import { categoryOptions, confirmDialog, hydrateMedia, thumb, toast } from '../ui.ts';
 
 const PAGE = 60;
 const VIEW_KEY = 'central-supply.studio.products-view';
@@ -75,14 +75,14 @@ export function productsView(context: Context): View {
   };
 
   function filtered() {
-    const known = new Set(store.categories().map((item) => item.slug));
     const words = normalise(search).split(/\s+/).filter(Boolean);
     const list = store.productList().filter((product) => {
       const { data } = product;
       if (!matchesStatus(product, status)) return false;
-      if (category && (category === 'other' ? known.has(data.category) : data.category !== category)) return false;
+      // A category includes its sub-categories; "other" is anything not in a category.
+      if (category && (category === 'other' ? store.resolveCategory(data.category) : !store.inCategory(data.category, category))) return false;
       if (words.length === 0) return true;
-      const haystack = normalise([data.title, data.brand, data.size, data.styleCode, data.colourway, data.condition, store.categoryName(data.category), ...data.tags].join(' '));
+      const haystack = normalise([data.title, data.brand, data.size, data.styleCode, data.colourway, data.condition, store.categoryLabel(data.category), ...data.tags].join(' '));
       return words.every((word) => haystack.includes(word));
     });
     const price = (product: Product, direction: number) => (product.data.price === null ? Number.POSITIVE_INFINITY : product.data.price * direction);
@@ -245,7 +245,7 @@ export function productsView(context: Context): View {
           <label class="st-select st-select--sm">
             <select data-bulk-category aria-label="Move to category">
               <option value="">Move to…</option>
-              ${store.categories().map((item) => html`<option value="${item.slug}">${item.name}</option>`)}
+              ${categoryOptions(store, '')}
             </select>
             ${icon('chevron-down', 14)}
           </label>
@@ -281,7 +281,7 @@ export function productsView(context: Context): View {
           <label class="st-select">
             <select data-category aria-label="Category">
               <option value="">All categories</option>
-              ${store.categories().map((item) => html`<option value="${item.slug}" ${category === item.slug ? 'selected' : ''}>${item.name}</option>`)}
+              ${categoryOptions(store, category)}
               <option value="other" ${category === 'other' ? 'selected' : ''}>Other</option>
             </select>
             ${icon('chevron-down', 14)}
@@ -348,7 +348,7 @@ export function productsView(context: Context): View {
       if (!slug) return;
       for (const id of selected) store.updateProduct(id, { category: slug }, true);
       store.emit('products');
-      toast(`Moved ${pluralise(selected.size, 'piece')} to ${store.categoryName(slug)}.`, { tone: 'ok' });
+      toast(`Moved ${pluralise(selected.size, 'piece')} to ${store.categoryLabel(slug)}.`, { tone: 'ok' });
       selected.clear();
       renderBulk();
     }

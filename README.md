@@ -62,6 +62,9 @@ What's inside:
 - **Site text:** every heading, button and line of text, grouped by page, each with its default and a
   **Show on page** button. In titles, words in **stars** become the italic accent.
 - **Categories:** rename, drag to reorder, add descriptions, add or delete (products move with them).
+  Press **+** on a category to put **sub-categories** inside it, as deep as you like: Trainers & Shoes ›
+  Nike › P-6000. Each has its own page (`/category/shoes/nike/p-6000/`), shoppers see a category's
+  sub-categories as buttons at the top of its page, and a category shows everything inside it.
 - **Settings:** store name, currency, whether sold pieces stay up, contact details (these become the DM
   buttons, so fill in at least one), and your admin key.
 
@@ -126,6 +129,9 @@ Bio: Brand new in the box.
 - No text file? The folder name becomes the name, with the price if it ends in one (`Jordan 4 £180`).
 - Folders inside **Trainers**, **Clothing** and so on go in that category; others use the category you
   pick at the top. The first photo (or one named `cover`) is the cover, up to 12 photos each.
+- Folders inside those become **sub-categories**: `Stock/Trainers/Nike/P-6000/<product folders>` files
+  them under Trainers & Shoes › Nike › P-6000, making Nike and P-6000 if they don't exist yet (marked
+  "new" in the list; there's a switch to turn this off). A text file can say `Category: Trainers > Nike`.
 - Check the list, change anything, then **Add products** and **Publish**. Up to 100 products at a time.
   Phones can't pick folders, so use a computer (Chrome, Edge or Firefox).
 - Publishing lots of photos goes in parts of about 40, each saved (and live) before the next starts,

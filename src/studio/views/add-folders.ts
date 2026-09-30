@@ -1,21 +1,23 @@
 // Add from folders: choose (or drop) a folder with one sub-folder per product. Each holds the product's
 // photos and a text file with its name, price, colourway and code (a bio is optional). The owner checks
 // the list, then adds them all; they go live with the next Publish.
+import { ancestorsOf, insertCategory, labelOf, orderCategories } from '../../lib/category-tree.ts';
 import { aiStatus, identify } from '../lib/ai.ts';
 import { $, html, pluralise, setHtml } from '../lib/dom.ts';
 import {
   fromFolderName,
   groupFolders,
   guessBrand,
-  matchCategory,
+  matchCategoryPath,
   parseDetails,
+  splitCategory,
   type FolderEntry,
   type ProductFolder,
 } from '../lib/folder-import.ts';
 import { icon } from '../lib/icons.ts';
 import { preparePhoto } from '../lib/media.ts';
 import type { Context, View } from '../shell.ts';
-import { busy, confirmDialog, errorMessage, toast } from '../ui.ts';
+import { busy, categoryOptions, confirmDialog, errorMessage, toast } from '../ui.ts';
 import { addTabs } from './add-tabs.ts';
 import { CONDITIONS } from './product-form.ts';
 
@@ -36,7 +38,9 @@ interface Item {
   folder: ProductFolder;
   preview: string;
   hasText: boolean;
-  /** Where the category came from: the text file, the folder it's in, or the default for the batch. */
+  /** The text file's "Category:" line, if any ("Trainers > Nike"). */
+  textCategory: string;
+  /** Where the category came from: the text file, the folders it's in, or the default for the batch. */
   categoryFrom: 'text' | 'folder' | 'default';
   touched: Set<keyof ItemData>;
   data: ItemData;
@@ -59,7 +63,9 @@ Bio: Brand new in the box. (This line is optional: leave it out if you don't wan
 // Kept while the Studio is open, so leaving the page and coming back doesn't lose the list.
 const items: Item[] = [];
 let sourceName = '';
-const options = { useBio: true, drafts: false, defaultCategory: '', condition: '', aiBio: false };
+const options = { useBio: true, drafts: false, defaultCategory: '', condition: '', aiBio: false, subcategories: true };
+/** Sub-categories the folders would make (Trainers › Nike › P-6000), top first. Made when adding. */
+let planned: { name: string; slug: string }[] = [];
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 const normal = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -154,7 +160,6 @@ export function addFoldersView(context: Context): View {
     if (folders.length > MAX_PRODUCTS) {
       toast(`Found ${folders.length} products. Taking the first ${MAX_PRODUCTS}: add these, then do the rest.`, { tone: 'info', timeout: 8000 });
     }
-    const categories = store.categories();
     const root = entries[0]?.path.replace(/\\/g, '/').split('/')[0] ?? '';
     sourceName = folders.length > 1 || !folders[0].path.includes('/') ? root : folders[0].name;
 
@@ -162,12 +167,10 @@ export function addFoldersView(context: Context): View {
       const details = folder.text ? parseDetails(await folder.text.file.text()) : parseDetails('');
       const fromName = fromFolderName(folder.name || sourceName);
       const title = details.name || fromName.name;
-      const textCategory = matchCategory(details.category, categories);
-      const folderCategory = matchCategory(folder.parent, categories);
       const data: ItemData = {
         title,
         price: details.price ?? fromName.price,
-        category: textCategory || folderCategory || options.defaultCategory,
+        category: options.defaultCategory,
         colourway: details.colourway,
         code: details.code,
         size: details.size,
@@ -180,12 +183,43 @@ export function addFoldersView(context: Context): View {
         folder,
         preview: URL.createObjectURL(folder.photos[0].file),
         hasText: Boolean(folder.text),
-        categoryFrom: textCategory ? 'text' : folderCategory ? 'folder' : 'default',
+        textCategory: details.category,
+        categoryFrom: 'default',
         touched: new Set(),
         data,
       });
     }
+    matchCategories();
     render();
+  }
+
+  /**
+   * Works out each product's category: from its text file, else from the folders it's in
+   * (Stock › Trainers › Nike › P-6000 → Trainers & Shoes › Nike › P-6000), else the default. Folders
+   * that aren't sub-categories yet are planned as new ones (when that's switched on). Products whose
+   * category was picked by hand keep it.
+   */
+  function matchCategories() {
+    planned = [];
+    const known = store.categories().map(({ name, slug }) => ({ name, slug }));
+    for (const item of items) {
+      const fromText = item.textCategory ? matchCategoryPath(splitCategory(item.textCategory), known, options.subcategories) : { slug: '', created: [] };
+      const found = fromText.slug ? fromText : matchCategoryPath(item.folder.parents, known, options.subcategories);
+      for (const made of found.created) {
+        known.push(made);
+        planned.push(made);
+      }
+      item.categoryFrom = fromText.slug ? 'text' : found.slug ? 'folder' : 'default';
+      if (!item.touched.has('category')) item.data.category = found.slug || options.defaultCategory;
+    }
+  }
+
+  /** The store's categories plus the planned ones, each followed by its sub-categories. */
+  function categoryChoices() {
+    const all = orderCategories([...store.categories().map(({ name, slug }) => ({ name, slug })), ...planned]);
+    const bySlug = new Map(all.map((category) => [category.slug, category]));
+    const isNew = new Set(planned.map((category) => category.slug));
+    return all.map((category) => ({ slug: category.slug, label: labelOf(category.slug, bySlug), isNew: isNew.has(category.slug) }));
   }
 
   // ---------------------------------------------------------------- adding them to the store
@@ -214,6 +248,7 @@ export function addFoldersView(context: Context): View {
     let added = 0;
     const skippedPhotos: string[] = [];
     const now = Date.now();
+    let madeCategories = false;
     try {
       for (const [index, item] of ready.entries()) {
         const photos = [];
@@ -238,6 +273,13 @@ export function addFoldersView(context: Context): View {
           }
         }
 
+        if (!madeCategories) {
+          madeCategories = true;
+          const used = new Set(ready.flatMap((each) => [...ancestorsOf(each.data.category), each.data.category]));
+          let list: { name: string; slug: string; description?: string }[] = store.categories().map(({ name, slug, description }) => ({ name, slug, description }));
+          for (const category of planned) if (used.has(category.slug)) list = insertCategory(list, category);
+          if (list.length !== store.categories().length) store.setCategories(list);
+        }
         const product = store.createProduct(item.data.category);
         store.updateProduct(
           product.id,
@@ -270,6 +312,7 @@ export function addFoldersView(context: Context): View {
     }
     for (const item of items) URL.revokeObjectURL(item.preview);
     items.length = 0;
+    planned = [];
     store.emit('products');
     if (skippedPhotos.length) {
       toast(`${pluralise(skippedPhotos.length, 'photo')} couldn't be opened and ${skippedPhotos.length === 1 ? 'was' : 'were'} left out (iPhone HEIC photos need Safari, or save them as JPG).`, { tone: 'warn', timeout: 10000 });
@@ -283,7 +326,7 @@ export function addFoldersView(context: Context): View {
   const categorySelect = (item: Item) => html`
     <span class="st-select st-select--block">
       <select data-f="category" aria-label="Category">
-        ${store.categories().map((category) => html`<option value="${category.slug}" ${category.slug === item.data.category ? 'selected' : ''}>${category.name}</option>`)}
+        ${categoryChoices().map((category) => html`<option value="${category.slug}" ${category.slug === item.data.category ? 'selected' : ''}>${category.label}${category.isNew ? ' (new)' : ''}</option>`)}
       </select>
       ${icon('chevron-down', 14)}
     </span>
@@ -291,6 +334,8 @@ export function addFoldersView(context: Context): View {
 
   function notes(item: Item) {
     const list = [];
+    const fresh = planned.filter((category) => category.slug === item.data.category || ancestorsOf(item.data.category).includes(category.slug));
+    if (fresh.length) list.push(html`<span class="st-chip st-chip--new">${icon('plus', 12)} New sub-categor${fresh.length === 1 ? 'y' : 'ies'}: ${fresh.map((category) => category.name).join(' › ')}</span>`);
     if (!item.hasText) list.push(html`<span class="st-chip st-chip--warn">No text file: name from the folder</span>`);
     if (item.data.price === null) list.push(html`<span class="st-chip">No price: shows "Ask for price"</span>`);
     if (item.folder.photos.length > MAX_PHOTOS_EACH) list.push(html`<span class="st-chip st-chip--warn">Only the first ${MAX_PHOTOS_EACH} photos are used</span>`);
@@ -387,8 +432,10 @@ export function addFoldersView(context: Context): View {
       📁 Nike Dunk Low Panda
          🖼 1.jpg  🖼 2.jpg  🖼 3.jpg
          📄 details.txt
-      📁 Jordan 4 Military Black £180
-         🖼 front.jpg  🖼 side.jpg
+      📁 Nike
+         📁 P-6000
+            📁 Nike P-6000 Metallic Silver
+               🖼 1.jpg  🖼 2.jpg
    📁 Clothing
       📁 Corteiz Alcatraz Hoodie
          …`}</pre>
@@ -398,7 +445,7 @@ export function addFoldersView(context: Context): View {
                       <li>${icon('check', 15)} <span>Only <strong>Name</strong> is needed. Leave out any line you don't have, <strong>Bio</strong> included.</span></li>
                       <li>${icon('check', 15)} <span>No labels? Put the name, price, colourway and code on their own lines, in that order, then the bio.</span></li>
                       <li>${icon('check', 15)} <span>No text file? The folder name is used, with a price if it ends in one, like <strong>Jordan 4 £180</strong>.</span></li>
-                      <li>${icon('check', 15)} <span>Folders inside <strong>Trainers</strong>, <strong>Clothing</strong> etc. go in that category. The first photo (or one called <strong>cover</strong>) is the cover.</span></li>
+                      <li>${icon('check', 15)} <span>Folders inside <strong>Trainers</strong>, <strong>Clothing</strong> etc. go in that category, and folders inside those (like <strong>Nike › P\u20116000</strong>) become sub-categories. The first photo (or one called <strong>cover</strong>) is the cover.</span></li>
                     </ul>
                     <button type="button" class="st-btn st-btn--ghost st-btn--sm" data-template>${icon('upload', 15)} Download an example text file</button>
                   </section>
@@ -410,7 +457,7 @@ export function addFoldersView(context: Context): View {
                     <span class="st-field__label">Category when a folder doesn't say</span>
                     <span class="st-select st-select--block">
                       <select data-option="defaultCategory">
-                        ${store.categories().map((category) => html`<option value="${category.slug}" ${category.slug === options.defaultCategory ? 'selected' : ''}>${category.name}</option>`)}
+                        ${categoryOptions(store, options.defaultCategory)}
                       </select>
                       ${icon('chevron-down', 14)}
                     </span>
@@ -424,6 +471,11 @@ export function addFoldersView(context: Context): View {
                       </select>
                       ${icon('chevron-down', 14)}
                     </span>
+                  </label>
+                  <label class="st-toggle">
+                    <input type="checkbox" data-option="subcategories" ${options.subcategories ? 'checked' : ''} />
+                    <span class="st-toggle__switch" aria-hidden="true"></span>
+                    <span class="st-toggle__text"><strong>Make sub-categories from folder names</strong><small>Folders inside Trainers, like Nike › P\u20116000, become sub-categories.</small></span>
                   </label>
                   <label class="st-toggle">
                     <input type="checkbox" data-option="useBio" ${options.useBio ? 'checked' : ''} />
@@ -469,6 +521,10 @@ export function addFoldersView(context: Context): View {
       if (option === 'defaultCategory') {
         // Products whose folder didn't say follow the new default.
         for (const item of items) if (item.categoryFrom === 'default' && !item.touched.has('category')) item.data.category = target.value;
+        render();
+      }
+      if (option === 'subcategories') {
+        matchCategories();
         render();
       }
       return;

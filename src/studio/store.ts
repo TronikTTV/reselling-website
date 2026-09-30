@@ -1,5 +1,6 @@
 // The Studio's state: the store's files as last saved, the owner's unpublished edits on top, and
 // publishing them all as one save. Screens read from here and re-draw when it announces a change.
+import { CATEGORY_SLUG, categorySlug, isWithin, labelOf, orderCategories, resolveCategory, type TreeCategory } from '../lib/category-tree.ts';
 import { COPY_DEFAULTS, SITE_TEXT_DEFAULTS, type CopyKey } from '../lib/copy-fields.ts';
 import { StudioError, type Account, type Activity, type Backend, type RemoteFile, type Snapshot, type TreeChange } from './lib/backend.ts';
 import { emptyProduct, parseProduct, sameValue, slugify, writeProduct, type ProductData, type ProductField } from './lib/product-file.ts';
@@ -68,11 +69,11 @@ interface Catalog {
   data: { path: string; sha: string; text: string }[];
 }
 
-export interface Category {
-  name: string;
-  slug: string;
-  description?: string;
-}
+/**
+ * A category or sub-category. Sub-categories' slugs start with their parent's ("shoes/nike"), and
+ * `categories()` lists each one straight after its parent (see src/lib/category-tree.ts).
+ */
+export type Category = TreeCategory;
 
 export interface Settings {
   siteName: string;
@@ -557,24 +558,54 @@ export class Store {
     }
   }
 
+  /** Every category, each followed by its sub-categories (a missing level is filled in). */
   categories(): Category[] {
-    const list = this.effective(DATA_FILES.categories).categories;
-    return (Array.isArray(list) ? list : [])
-      .map((item) => ({
-        name: String(item?.name ?? '').trim(),
-        slug: String(item?.slug ?? '').trim(),
-        description: item?.description ? String(item.description) : undefined,
-      }))
-      .filter((category) => category.slug || category.name);
+    return [...this.categoryIndex().list];
   }
 
-  setCategories(list: Category[]) {
+  /** Worked out again only when the categories change (filters ask for it for every product). */
+  private categoryMemo: { base: unknown; edit: unknown; list: Category[]; known: Set<string>; bySlug: Map<string, Category> } | null = null;
+
+  private categoryIndex() {
+    const doc = this.doc(DATA_FILES.categories);
+    const edit = doc.edits.get('categories');
+    if (this.categoryMemo?.base === doc.base && this.categoryMemo.edit === edit) return this.categoryMemo;
+    const raw = this.effective(DATA_FILES.categories).categories;
+    const list: Category[] = orderCategories(
+      (Array.isArray(raw) ? raw : []).map((item) => ({
+        name: String(item?.name ?? '').trim(),
+        slug: categorySlug(String(item?.slug ?? '') || String(item?.name ?? '')),
+        description: item?.description ? String(item.description) : undefined,
+      })),
+    );
+    this.categoryMemo = { base: doc.base, edit, list, known: new Set(list.map((category) => category.slug)), bySlug: new Map(list.map((category) => [category.slug, category])) };
+    return this.categoryMemo;
+  }
+
+  setCategories(list: { name: string; slug: string; description?: string }[]) {
     const tidy = list.map(({ name, slug, description }) => (description?.trim() ? { name, slug, description: description.trim() } : { name, slug }));
     this.setJson(DATA_FILES.categories, 'categories', tidy, 'categories');
   }
 
+  /** The category a product with this `category` shows under: the deepest one that exists, or ''. */
+  resolveCategory(slug: string): string {
+    return resolveCategory(slug, this.categoryIndex().known);
+  }
+
+  /** Whether a product's category is this one or inside it (sub-categories count). */
+  inCategory(productCategory: string, slug: string): boolean {
+    return isWithin(this.resolveCategory(productCategory) || categorySlug(productCategory), slug);
+  }
+
+  /** The name a product's category shows as ("P-6000"), or "Other". */
   categoryName(slug: string) {
-    return this.categories().find((category) => category.slug === slug)?.name ?? (slug ? slug : 'Other');
+    return this.categoryIndex().bySlug.get(this.resolveCategory(slug))?.name ?? (slug ? slug : 'Other');
+  }
+
+  /** The full name with the categories above it: "Trainers & Shoes › Nike › P-6000". */
+  categoryLabel(slug: string) {
+    const found = this.resolveCategory(slug);
+    return found ? labelOf(found, this.categoryIndex().bySlug) : slug || 'Other';
   }
 
   formatPrice(amount: number | null | undefined): string {
@@ -698,7 +729,7 @@ export class Store {
     }
     const names = this.categories();
     if (names.some((category) => !category.name.trim())) list.push('Every category needs a name.');
-    if (names.some((category) => !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(category.slug))) list.push('A category web address can only use lowercase letters, numbers and dashes.');
+    if (names.some((category) => !CATEGORY_SLUG.test(category.slug))) list.push('A category web address can only use lowercase letters, numbers and dashes.');
     if (new Set(names.map((category) => category.slug)).size !== names.length) list.push('Two categories have the same web address.');
     return [...new Set(list)];
   }

@@ -42,7 +42,8 @@ const products = defineCollection({
   schema: ({ image }) =>
     z.object({
       title: z.preprocess((value) => (isBlank(value) ? undefined : String(value).trim()), z.string()),
-      // Slug of a category from src/data/categories.json. Unknown slugs show under "Other".
+      // Slug of a category from src/data/categories.json; sub-categories look like "shoes/nike/p-6000"
+      // (see src/lib/category-tree.ts). Unknown ones show under the nearest category above, or "Other".
       category: z.preprocess(
         (value) => (isBlank(value) ? 'other' : String(value).trim().toLowerCase()),
         z.string(),

@@ -50,15 +50,17 @@ export function stats(store: Store) {
   };
 }
 
-/** Products per category, in the category order. */
+/** Products per top-level category (counting its sub-categories), in the category order. */
 export function byCategory(store: Store) {
   const live = listed(store);
-  const rows = store.categories().map((category) => {
-    const products = live.filter((product) => product.data.category === category.slug);
-    return { slug: category.slug, name: category.name, count: products.length, sold: products.filter((product) => product.data.status === 'sold').length };
-  });
-  const known = new Set(rows.map((row) => row.slug));
-  const other = live.filter((product) => !known.has(product.data.category));
+  const rows = store
+    .categories()
+    .filter((category) => category.depth === 0)
+    .map((category) => {
+      const products = live.filter((product) => store.inCategory(product.data.category, category.slug));
+      return { slug: category.slug, name: category.name, count: products.length, sold: products.filter((product) => product.data.status === 'sold').length };
+    });
+  const other = live.filter((product) => !store.resolveCategory(product.data.category));
   if (other.length > 0) rows.push({ slug: '', name: 'Other', count: other.length, sold: other.filter((product) => product.data.status === 'sold').length });
   return rows;
 }

@@ -1,0 +1,92 @@
+---
+// One page per category and sub-category: /category/shoes/, /category/shoes/nike/, … Each shows its
+// products and those in its sub-categories, with the sub-categories as chips to narrow it down.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Copy from '../../components/Copy.astro';
+import Icon from '../../components/Icon.astro';
+import ProductBrowser from '../../components/ProductBrowser.astro';
+import { categoryTrail, getCategorySummaries, getListedProducts, isInCategory, type CategorySummary } from '../../lib/catalog';
+import { pluralise } from '../../lib/format';
+import { sharePreview } from '../../lib/images';
+import { categoryUrl, shopUrl } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const summaries = await getCategorySummaries();
+  return summaries.map((summary) => ({ params: { slug: summary.category.slug }, props: { summary, summaries } }));
+}
+
+interface Props {
+  summary: CategorySummary;
+  summaries: CategorySummary[];
+}
+
+const { summary, summaries } = Astro.props;
+const { category, cover } = summary;
+const products = (await getListedProducts()).filter((product) => isInCategory(product, category));
+const above = categoryTrail(category).slice(0, -1);
+const parent = above[above.length - 1];
+// Its sub-categories that have something in them.
+const subcategories = summaries.filter((item) => item.category.parent === category.slug && item.count > 0);
+const previewPhoto = cover?.data.images[0];
+const preview = previewPhoto ? await sharePreview(previewPhoto) : undefined;
+
+// The last word of the name gets the italic accent: "Hats & Caps" → "Hats & *Caps*".
+const words = category.name.split(/\s+/);
+const lead = words.slice(0, -1).join(' ');
+const accent = words[words.length - 1];
+const fallbackDescription = parent
+  ? `Hand-picked ${category.name} from ${parent.name}. Tap any piece for photos, sizes and price.`
+  : `Hand-picked ${category.name.toLowerCase()}. Tap any piece for photos, sizes and price.`;
+---
+
+<BaseLayout
+  title={parent ? `${category.name} · ${parent.name}` : category.name}
+  description={category.description || `${pluralise(products.length, 'piece')} in ${category.name}.`}
+  image={preview}
+  currentCategory={category.slug}
+>
+  <div class="container">
+    {
+      above.length > 0 && (
+        <nav class="breadcrumbs breadcrumbs--page" aria-label="Breadcrumb">
+          <a href={shopUrl()}>
+            <Copy name="nav.shopAll" />
+          </a>
+          {above.map((item) => (
+            <>
+              <Icon name="chevron-right" size={14} />
+              <a href={categoryUrl(item.slug)}>{item.name}</a>
+            </>
+          ))}
+        </nav>
+      )
+    }
+    <header class="page-head">
+      <p class="eyebrow">
+        <Icon name="spark" size={14} />
+        {pluralise(products.length, 'piece')}
+      </p>
+      <h1 class="page-head__title" data-edit={`category:${category.slug}:name`}>
+        {lead && `${lead} `}<em>{accent}</em>
+      </h1>
+      <p class="page-head__desc" data-edit={`category:${category.slug}:description`}>{category.description || fallbackDescription}</p>
+    </header>
+    {
+      subcategories.length > 0 && (
+        <nav class="subcats" aria-label={`Inside ${category.name}`}>
+          <a class="chip" href={categoryUrl(category.slug)} aria-current="page">
+            <Copy name="nav.all" />
+            <span class="chip__count">{products.length}</span>
+          </a>
+          {subcategories.map((item) => (
+            <a class="chip" href={categoryUrl(item.category.slug)}>
+              {item.category.name}
+              <span class="chip__count">{item.count}</span>
+            </a>
+          ))}
+        </nav>
+      )
+    }
+    <ProductBrowser products={products} />
+  </div>
+</BaseLayout>

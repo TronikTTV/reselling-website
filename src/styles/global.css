@@ -2024,6 +2024,40 @@ select option {
   color: var(--muted);
 }
 
+/* On a sub-category's page: the categories above it, just over the title. */
+.breadcrumbs--page {
+  padding-top: 12px;
+  margin-bottom: -24px;
+}
+
+@media (min-width: 960px) {
+  .breadcrumbs--page {
+    padding-top: 28px;
+    margin-bottom: -44px;
+  }
+}
+
+/* A category's sub-categories as big chips under its title (they scroll sideways on phones). */
+.subcats {
+  display: flex;
+  gap: 8px;
+  margin: -4px 0 18px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  animation: rise 0.8s 0.08s var(--ease) both;
+}
+
+.subcats::-webkit-scrollbar {
+  display: none;
+}
+
+.subcats .chip {
+  height: 44px;
+  padding: 0 18px;
+  font-size: 0.9rem;
+}
+
 .browser__controls {
   display: grid;
   gap: 10px;
@@ -3181,6 +3215,7 @@ select option {
   .hero__tagline,
   .hero__actions,
   .page-head,
+  .subcats,
   .product__info,
   .not-found,
   .search-sheet[open],

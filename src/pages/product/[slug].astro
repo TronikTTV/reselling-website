@@ -6,7 +6,8 @@ import Gallery from '../../components/Gallery.astro';
 import Icon from '../../components/Icon.astro';
 import ProductRail from '../../components/ProductRail.astro';
 import ShareButton from '../../components/ShareButton.astro';
-import { categoryOf, getAllProducts, getListedProducts, type Product } from '../../lib/catalog';
+import { categoryOf, categoryTrail, getAllProducts, getListedProducts, type Product } from '../../lib/catalog';
+import { isWithin } from '../../lib/category-tree';
 import { contactLinks, type ContactLink } from '../../lib/contact';
 import { copy } from '../../lib/copy';
 import { authenticityLabel, formatPrice, STATUS_LABELS } from '../../lib/format';
@@ -31,6 +32,8 @@ const authenticityText = authenticityLabel(authenticity);
 const { Content } = await render(product);
 const hasDescription = Boolean(product.body?.trim());
 const category = categoryOf(product);
+// Trainers & Shoes › Nike › P-6000 (just the category when it has no sub-categories).
+const trail = categoryTrail(category);
 const priceText = formatPrice(price);
 const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
 
@@ -48,12 +51,18 @@ const edit = (part?: string) => `product:${product.id}${part ? `:${part}` : ''}`
 const iconFor = (key: ContactLink['key']) =>
   key === 'instagram' ? 'instagram' : key === 'whatsapp' ? 'whatsapp' : key === 'email' ? 'mail' : 'arrow-up-right';
 
-// "You might also like": same category first, topped up with other pieces in stock.
+// "You might also like": the same (sub-)category first, then the rest of its top-level category, topped
+// up with other pieces in stock.
 const listed = (await getListedProducts()).filter((other) => other.id !== product.id && other.data.status !== 'sold');
-const related = [
-  ...listed.filter((other) => categoryOf(other).slug === category.slug),
-  ...listed.filter((other) => categoryOf(other).slug !== category.slug),
-].slice(0, 10);
+const closeness = (other: Product) => {
+  const slug = categoryOf(other).slug;
+  return slug === category.slug ? 0 : isWithin(slug, trail[0].slug) ? 1 : 2;
+};
+const related = listed
+  .map((other, index) => ({ other, index, rank: closeness(other) }))
+  .sort((a, b) => a.rank - b.rank || a.index - b.index)
+  .map(({ other }) => other)
+  .slice(0, 10);
 
 const specs = [
   size && { label: 'Size', value: size },
@@ -73,8 +82,12 @@ const specs = [
   <div class="container">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
       <a href={url('/')}>Home</a>
-      <Icon name="chevron-right" size={14} />
-      <a href={categoryUrl(category.slug)}>{category.name}</a>
+      {trail.map((item) => (
+        <>
+          <Icon name="chevron-right" size={14} />
+          <a href={categoryUrl(item.slug)}>{item.name}</a>
+        </>
+      ))}
     </nav>
 
     <article class="product">
@@ -122,7 +135,14 @@ const specs = [
           }
           <div class="spec">
             <dt>Category</dt>
-            <dd><a href={categoryUrl(category.slug)}>{category.name}</a></dd>
+            <dd>
+              {trail.map((item, index) => (
+                <>
+                  {index > 0 && ' › '}
+                  <a href={categoryUrl(item.slug)}>{item.name}</a>
+                </>
+              ))}
+            </dd>
           </div>
           {
             includes.length > 0 && (

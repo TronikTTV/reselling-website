@@ -1,6 +1,6 @@
 ---
 import Icon from './Icon.astro';
-import { categoryOf, type Product } from '../lib/catalog';
+import { categoryOf, categoryTrail, type Product } from '../lib/catalog';
 import { copy } from '../lib/copy';
 import { formatPrice, STATUS_LABELS } from '../lib/format';
 import { productPhoto } from '../lib/images';
@@ -20,6 +20,8 @@ interface Props {
 const { product, eager = false, hidden = false, index = 0 } = Astro.props;
 const { title, brand, price, retailPrice, status, size, condition, tags, date, images, styleCode, colourway } = product.data;
 const category = categoryOf(product);
+// Searching "Trainers" or "Nike" finds pieces filed under Trainers & Shoes › Nike › P-6000.
+const categoryNames = categoryTrail(category).map((item) => item.name);
 const photo = images[0] ? await productPhoto(images[0]) : undefined;
 const priceText = formatPrice(price);
 const showRetail = retailPrice !== undefined && price !== undefined && retailPrice > price;
@@ -31,7 +33,7 @@ const showRetail = retailPrice !== undefined && price !== undefined && retailPri
 <article
   class:list={['card', `card--${status}`]}
   data-product
-  data-search={normalise([title, brand, category.name, size, condition, styleCode, colourway, ...tags].filter(Boolean).join(' '))}
+  data-search={normalise([title, brand, ...categoryNames, size, condition, styleCode, colourway, ...tags].filter(Boolean).join(' '))}
   data-category={category.slug}
   data-brand={brand ? normalise(brand) : ''}
   data-price={price ?? ''}
