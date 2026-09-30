@@ -1,5 +1,24 @@
 # Storefront refresh
 
+## Publishing big uploads reliably — 30 September 2026
+
+- The owner's first big folder upload stopped part-way with a red message ("error 500" from GitHub):
+  the Studio sent every photo as fast as it could, and GitHub turns away more than about 80 saves a
+  minute or 500 an hour (see GitHub's REST API "rate limits" page).
+- Now photos go at about one a second, and a big publish is saved in parts of about 40 photos (the
+  first part also carries any text, settings and category changes), each committed before the next.
+  When GitHub asks for a break (403/429, `retry-after`) the Studio waits with a countdown; a dropped
+  connection or a 5xx answer is retried four times (3 s, 10 s, 30 s, 60 s). Photos already uploaded are
+  remembered while the page is open, so Try again carries on. A save whose answer is lost is checked
+  against the branch, so it isn't saved twice.
+- The publishing box shows the part, a progress bar, time left and a Stop button (hidden while a part
+  is saving). Errors stay on screen with Try again, and the Publish bar says what went wrong.
+- `npm run test:studio` (30 tests) covers pacing, waiting out "slow down", resuming after a failure,
+  Stop, lost answers, the hourly allowance, parts of 40 and a failure in part 2 (part 1 stays saved,
+  Try again adds only the rest, no duplicates).
+- Checked in "Edit this PC's files" mode at 670px and 375px: box fits, Stop is 44px tall, the error
+  message and Publish bar show the reason.
+
 ## Add from folders (bulk) — 29 September 2026
 
 - New in the store admin: **Add products → From folders**. One folder per product with its photos and a

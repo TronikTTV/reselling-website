@@ -37,6 +37,13 @@ export interface TreeChange {
 
 export type CommitResult = { head: string } | { conflict: true };
 
+export interface CommitOptions {
+  /** What's happening, in plain words, and how far through the uploads it is (0–1). */
+  progress?: (text: string, fraction?: number) => void;
+  /** Stops before saving (photos already sent are remembered, so the next try carries on). */
+  signal?: AbortSignal;
+}
+
 export interface Activity {
   sha: string;
   message: string;
@@ -56,14 +63,14 @@ export interface Backend {
   snapshot(head?: string): Promise<Snapshot>;
   readText(file: RemoteFile): Promise<string>;
   readBlob(file: RemoteFile): Promise<Blob>;
-  commit(base: Snapshot, changes: TreeChange[], message: string, progress?: (text: string) => void): Promise<CommitResult>;
+  commit(base: Snapshot, changes: TreeChange[], message: string, options?: CommitOptions): Promise<CommitResult>;
   account(): Promise<Account>;
   activity(): Promise<Activity[]>;
   /** Headers that prove to this site's own endpoints (e.g. /api/identify) that it's the owner. */
   authHeaders(): Record<string, string>;
 }
 
-export type ErrorKind = 'auth' | 'permission' | 'missing' | 'rate' | 'network' | 'conflict' | 'invalid' | 'server';
+export type ErrorKind = 'auth' | 'permission' | 'missing' | 'rate' | 'network' | 'conflict' | 'invalid' | 'server' | 'cancelled';
 
 export class StudioError extends Error {
   readonly kind: ErrorKind;
@@ -95,6 +102,65 @@ interface GitTreeEntry {
   size?: number;
 }
 
+const SECOND = 1000;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+/** The longest the Studio waits for GitHub in one go before giving up. */
+const MAX_WAIT = 65 * MINUTE;
+/** Waits before trying again after the connection drops or GitHub has a problem ("error 500"). */
+const RETRY_WAITS = [3 * SECOND, 10 * SECOND, 30 * SECOND, 60 * SECOND];
+
+export interface GitHubOptions {
+  /**
+   * How many saving requests (one per photo) to send per minute and per hour. GitHub turns away more
+   * than 80 a minute or 500 an hour, which a big folder of photos easily reaches.
+   */
+  perMinute?: number;
+  perHour?: number;
+  /** For tests: a pretend clock. */
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}
+
+type WaitReason = 'pace' | 'hour' | 'rate' | 'retry';
+
+const clock = (ms: number) => {
+  const seconds = Math.ceil(ms / SECOND);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+};
+
+function waitText(reason: WaitReason, left: number, until: number): string {
+  if (reason === 'hour') {
+    const time = new Date(until).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `GitHub takes about 500 photos an hour, so the rest go at ${time} (in ${Math.ceil(left / MINUTE)} min). Keep this page open, or press Stop and publish later.`;
+  }
+  if (reason === 'rate') return `GitHub asked for a short break. Carrying on in ${clock(left)}…`;
+  if (reason === 'retry') return `GitHub didn't answer properly (it happens when it's busy). Trying again in ${Math.ceil(left / SECOND)}s…`;
+  return 'Sending photos at a steady pace so GitHub accepts them all…';
+}
+
+function uploadText(kind: string, index: number, total: number, elapsed: number): string {
+  if (total === 1) return `Uploading ${kind}…`;
+  let text = `Uploading ${kind} ${index + 1} of ${total}`;
+  if (total >= 20 && index >= 5) {
+    const left = (elapsed / index) * (total - index);
+    text += left < MINUTE ? ' · under a minute left' : ` · about ${Math.round(left / MINUTE)} min left`;
+  }
+  return `${text}…`;
+}
+
+/** How long GitHub asked us to wait (see "rate limits" in GitHub's REST API docs). */
+function retryDelay(response: Response, attempt: number, now: number): number {
+  const after = Number(response.headers.get('retry-after'));
+  if (response.headers.has('retry-after') && Number.isFinite(after) && after >= 0) return Math.max(after * SECOND, SECOND);
+  if (response.headers.get('x-ratelimit-remaining') === '0') {
+    const reset = Number(response.headers.get('x-ratelimit-reset')) * SECOND;
+    if (Number.isFinite(reset) && reset > now) return reset - now + SECOND;
+  }
+  // Otherwise at least a minute, longer each time.
+  return Math.min(MINUTE * 2 ** attempt, 10 * MINUTE);
+}
+
 export class GitHubBackend implements Backend {
   readonly kind = 'github' as const;
   readonly repo: string;
@@ -103,29 +169,107 @@ export class GitHubBackend implements Backend {
   private readonly api: string;
   /** How many API calls are left this hour (GitHub allows 5,000 with a key). */
   rateRemaining: number | undefined;
+  private readonly perMinute: number;
+  private readonly perHour: number;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private readonly now: () => number;
+  /** When recent saving requests were sent, to keep under GitHub's limits. */
+  private sentTimes: number[] = [];
+  /** Photos and videos already on GitHub while this page is open, so trying again carries on. */
+  private readonly sent = new WeakMap<Blob, string>();
+  /** The publish in progress: where to say what's happening, and its Stop button. */
+  private task: CommitOptions | null = null;
+  private fraction: number | undefined;
 
-  constructor(repo: string, branch: string, token: string, api = 'https://api.github.com') {
+  constructor(repo: string, branch: string, token: string, api = 'https://api.github.com', options: GitHubOptions = {}) {
     this.repo = repo;
     this.branch = branch;
     this.token = token;
     this.api = api;
+    this.perMinute = options.perMinute ?? 60;
+    this.perHour = options.perHour ?? 480;
+    this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.now = options.now ?? Date.now;
   }
 
+  /**
+   * Sends a request, waiting and trying again when GitHub asks for a break or the connection drops
+   * for a moment, and keeping saving requests under GitHub's per-minute and per-hour limits.
+   */
   private async request(path: string, init: RequestInit = {}, accept = 'application/vnd.github+json'): Promise<Response> {
     const headers = new Headers(init.headers);
     headers.set('Accept', accept);
     if (this.token) headers.set('Authorization', `Bearer ${this.token}`);
     if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-    let response: Response;
-    try {
-      response = await fetch(`${this.api}${path}`, { cache: 'no-store', ...init, headers });
-    } catch {
-      throw new StudioError('network', "Couldn't reach GitHub. Check your internet connection and try again.");
+    const saving = (init.method ?? 'GET') !== 'GET';
+    let waited = 0;
+    for (let attempt = 0; ; attempt++) {
+      if (saving) waited += await this.pace();
+      let response: Response;
+      try {
+        response = await fetch(`${this.api}${path}`, { cache: 'no-store', ...init, headers });
+      } catch {
+        if (attempt < RETRY_WAITS.length) {
+          await this.pause(RETRY_WAITS[attempt], 'retry');
+          continue;
+        }
+        throw new StudioError('network', "Couldn't reach GitHub. Check your internet connection and try again.");
+      }
+      const remaining = Number(response.headers.get('x-ratelimit-remaining'));
+      if (Number.isFinite(remaining) && response.headers.has('x-ratelimit-remaining')) this.rateRemaining = remaining;
+      if (response.ok) return response;
+      const error = await this.error(response);
+      if (error.kind === 'rate') {
+        const delay = retryDelay(response, attempt, this.now());
+        if (waited + delay <= MAX_WAIT) {
+          waited += delay;
+          await this.pause(delay, delay > 15 * MINUTE ? 'hour' : 'rate');
+          continue;
+        }
+      } else if (error.kind === 'server' && error.status >= 500 && attempt < RETRY_WAITS.length) {
+        // GitHub sometimes answers "500" when it's busy: it usually works a little later.
+        await this.pause(RETRY_WAITS[attempt], 'retry');
+        continue;
+      }
+      throw error;
     }
-    const remaining = Number(response.headers.get('x-ratelimit-remaining'));
-    if (Number.isFinite(remaining) && response.headers.has('x-ratelimit-remaining')) this.rateRemaining = remaining;
-    if (!response.ok) throw await this.error(response);
-    return response;
+  }
+
+  /** Spaces out saving requests (about one a second) and waits when this hour's allowance is used up. */
+  private async pace(): Promise<number> {
+    const now = this.now();
+    this.sentTimes = this.sentTimes.filter((time) => now - time < HOUR);
+    const last = this.sentTimes[this.sentTimes.length - 1];
+    let delay = last === undefined ? 0 : Math.max(0, last + MINUTE / this.perMinute - now);
+    if (this.sentTimes.length >= this.perHour) delay = Math.max(delay, this.sentTimes[this.sentTimes.length - this.perHour] + HOUR - now);
+    if (delay > 0) await this.pause(delay, delay > MINUTE ? 'hour' : 'pace');
+    this.sentTimes.push(this.now());
+    return delay;
+  }
+
+  /** Waits, saying why when it's more than a moment. Pressing Stop ends the wait. */
+  private async pause(ms: number, reason: WaitReason) {
+    const until = this.now() + ms;
+    for (;;) {
+      this.checkStop();
+      const left = until - this.now();
+      if (left <= 0) return;
+      if (reason !== 'pace' || left > 3 * SECOND) this.task?.progress?.(waitText(reason, left, until), this.fraction);
+      await this.sleep(Math.min(left, SECOND));
+    }
+  }
+
+  private checkStop() {
+    if (this.task?.signal?.aborted) throw new StudioError('cancelled', 'Publishing stopped.');
+  }
+
+  /** Whether the branch is at this commit (to check a save whose answer got lost on the way back). */
+  private async headIs(sha: string): Promise<boolean> {
+    try {
+      return (await this.json<{ object: { sha: string } }>(`/repos/${this.repo}/git/ref/heads/${this.branch}`)).object.sha === sha;
+    } catch {
+      return false;
+    }
   }
 
   private async error(response: Response): Promise<StudioError> {
@@ -140,8 +284,11 @@ export class GitHubBackend implements Backend {
     if (status === 401) {
       return new StudioError('auth', "Your admin key didn't work. It may have been mistyped, or deleted on GitHub.", status);
     }
-    if ((status === 403 || status === 429) && (response.headers.get('x-ratelimit-remaining') === '0' || /rate limit/i.test(detail))) {
-      return new StudioError('rate', 'GitHub needs a short break (too many requests this hour). Try again in a few minutes.', status);
+    if (
+      status === 429 ||
+      (status === 403 && (response.headers.get('x-ratelimit-remaining') === '0' || response.headers.has('retry-after') || /rate limit|abuse/i.test(detail)))
+    ) {
+      return new StudioError('rate', 'GitHub is limiting how fast things can be saved right now. Wait a few minutes, then try again.', status);
     }
     if (status === 403) {
       return new StudioError(
@@ -207,47 +354,75 @@ export class GitHubBackend implements Backend {
     return new TextDecoder().decode(await (await this.readBlob(file)).arrayBuffer());
   }
 
-  async commit(base: Snapshot, changes: TreeChange[], message: string, progress?: (text: string) => void): Promise<CommitResult> {
-    const uploads = changes.filter((change) => change.blob && !change.uploaded);
-    let count = 0;
-    for (const change of uploads) {
-      count += 1;
-      const kind = change.blob!.type.startsWith('video/') ? 'video' : 'photo';
-      progress?.(uploads.length > 1 ? `Uploading ${kind} ${count} of ${uploads.length}…` : `Uploading ${kind}…`);
-      const content = await blobToBase64(change.blob!);
-      const blob = await this.json<{ sha: string }>(`/repos/${this.repo}/git/blobs`, {
-        method: 'POST',
-        body: JSON.stringify({ content, encoding: 'base64' }),
-      });
-      change.uploaded = blob.sha;
-    }
-
-    progress?.('Saving…');
-    const tree = changes.map((change) => {
-      const entry = { path: change.path, mode: '100644', type: 'blob' };
-      if (change.delete) return { ...entry, sha: null };
-      if (change.content !== undefined) return { ...entry, content: change.content };
-      return { ...entry, sha: change.uploaded ?? change.from?.sha };
-    });
-    const newTree = await this.json<{ sha: string }>(`/repos/${this.repo}/git/trees`, {
-      method: 'POST',
-      body: JSON.stringify({ base_tree: base.treeSha, tree }),
-    });
-    const commit = await this.json<{ sha: string }>(`/repos/${this.repo}/git/commits`, {
-      method: 'POST',
-      body: JSON.stringify({ message, tree: newTree.sha, parents: [base.head] }),
-    });
+  async commit(base: Snapshot, changes: TreeChange[], message: string, options: CommitOptions = {}): Promise<CommitResult> {
+    const { progress } = options;
+    this.task = options;
+    this.fraction = undefined;
     try {
-      await this.request(`/repos/${this.repo}/git/refs/heads/${this.branch}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ sha: commit.sha, force: false }),
+      for (const change of changes) {
+        const known = change.blob && !change.uploaded ? this.sent.get(change.blob) : undefined;
+        if (known) change.uploaded = known;
+      }
+      const uploads = changes.filter((change) => change.blob && !change.uploaded);
+      const started = this.now();
+      for (const [index, change] of uploads.entries()) {
+        this.checkStop();
+        const kind = change.blob!.type.startsWith('video/') ? 'video' : 'photo';
+        this.fraction = uploads.length > 1 ? index / uploads.length : undefined;
+        progress?.(uploadText(kind, index, uploads.length, this.now() - started), this.fraction);
+        const content = await blobToBase64(change.blob!);
+        const blob = await this.json<{ sha: string }>(`/repos/${this.repo}/git/blobs`, {
+          method: 'POST',
+          body: JSON.stringify({ content, encoding: 'base64' }),
+        });
+        change.uploaded = blob.sha;
+        this.sent.set(change.blob!, blob.sha);
+      }
+      this.checkStop();
+
+      // Saving takes a moment from here, and stopping half-way could leave it unclear whether it saved.
+      this.task = { progress };
+      this.fraction = uploads.length > 1 ? 1 : undefined;
+      progress?.('Saving…', this.fraction);
+      const tree = changes.map((change) => {
+        const entry = { path: change.path, mode: '100644', type: 'blob' };
+        if (change.delete) return { ...entry, sha: null };
+        if (change.content !== undefined) return { ...entry, content: change.content };
+        return { ...entry, sha: change.uploaded ?? change.from?.sha };
       });
-    } catch (error) {
-      // Someone else saved in the meantime (e.g. from another phone): start again from theirs.
-      if (error instanceof StudioError && (error.kind === 'conflict' || error.status === 422)) return { conflict: true };
-      throw error;
+      let newTree: { sha: string };
+      try {
+        newTree = await this.json<{ sha: string }>(`/repos/${this.repo}/git/trees`, {
+          method: 'POST',
+          body: JSON.stringify({ base_tree: base.treeSha, tree }),
+        });
+      } catch (error) {
+        // In case GitHub no longer has photos sent on an earlier try: send them again next time.
+        for (const change of changes) if (change.blob) this.sent.delete(change.blob);
+        throw error;
+      }
+      const commit = await this.json<{ sha: string }>(`/repos/${this.repo}/git/commits`, {
+        method: 'POST',
+        body: JSON.stringify({ message, tree: newTree.sha, parents: [base.head] }),
+      });
+      try {
+        await this.request(`/repos/${this.repo}/git/refs/heads/${this.branch}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ sha: commit.sha, force: false }),
+        });
+      } catch (error) {
+        // The save may have worked with the answer lost on the way back (or a retry then refused).
+        if (error instanceof StudioError && (error.kind === 'network' || error.kind === 'conflict' || error.status === 422) && (await this.headIs(commit.sha))) {
+          return { head: commit.sha };
+        }
+        // Someone else saved in the meantime (e.g. from another phone): start again from theirs.
+        if (error instanceof StudioError && (error.kind === 'conflict' || error.status === 422)) return { conflict: true };
+        throw error;
+      }
+      return { head: commit.sha };
+    } finally {
+      this.task = null;
     }
-    return { head: commit.sha };
   }
 
   authHeaders(): Record<string, string> {
@@ -317,7 +492,7 @@ export class LocalBackend implements Backend {
     return new TextDecoder().decode(await (await this.readBlob(file)).arrayBuffer());
   }
 
-  async commit(_base: Snapshot, changes: TreeChange[], message: string, progress?: (text: string) => void): Promise<CommitResult> {
+  async commit(_base: Snapshot, changes: TreeChange[], message: string, { progress }: CommitOptions = {}): Promise<CommitResult> {
     progress?.('Saving to this PC…');
     const payload = await Promise.all(
       changes.map(async (change) => {

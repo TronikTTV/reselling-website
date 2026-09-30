@@ -128,6 +128,10 @@ Bio: Brand new in the box.
   pick at the top. The first photo (or one named `cover`) is the cover, up to 12 photos each.
 - Check the list, change anything, then **Add products** and **Publish**. Up to 100 products at a time.
   Phones can't pick folders, so use a computer (Chrome, Edge or Firefox).
+- Publishing lots of photos goes in parts of about 40, each saved (and live) before the next starts,
+  at about one photo a second, which GitHub accepts. Keep the page open; there's a progress bar and a
+  **Stop** button. If something goes wrong, the message stays until you close it: press **Try again** and
+  it carries on where it stopped (photos already sent aren't sent twice).
 
 ### Add from photos (AI)
 

@@ -15,7 +15,7 @@ import {
 import { icon } from '../lib/icons.ts';
 import { preparePhoto } from '../lib/media.ts';
 import type { Context, View } from '../shell.ts';
-import { busy, errorMessage, toast } from '../ui.ts';
+import { busy, confirmDialog, errorMessage, toast } from '../ui.ts';
 import { addTabs } from './add-tabs.ts';
 import { CONDITIONS } from './product-form.ts';
 
@@ -44,6 +44,9 @@ interface Item {
 
 const MAX_PRODUCTS = 100;
 const MAX_PHOTOS_EACH = 12;
+/** Publishing sends about one photo a second, and GitHub takes about 500 an hour (see lib/backend.ts). */
+const PHOTOS_PER_HOUR = 480;
+const publishMinutes = (photos: number) => Math.max(1, Math.round(photos / 60));
 
 const TEMPLATE = `Name: Nike Dunk Low Retro Panda
 Price: 120
@@ -197,6 +200,15 @@ export function addFoldersView(context: Context): View {
     }
     if (ready.length === 0) return;
     const totalPhotos = ready.reduce((sum, item) => sum + Math.min(item.folder.photos.length, MAX_PHOTOS_EACH), 0);
+    if (totalPhotos > PHOTOS_PER_HOUR) {
+      const ok = await confirmDialog({
+        title: `That's ${totalPhotos} photos`,
+        body: `GitHub, where your site is saved, takes about ${PHOTOS_PER_HOUR} photos an hour. Publishing all of these pauses part-way for up to an hour (with the page kept open). Adding them in two goes is quicker.`,
+        confirm: 'Add them all',
+        cancel: 'Go back',
+      });
+      if (!ok) return;
+    }
     const overlay = busy('Getting the photos ready…');
     let done = 0;
     let added = 0;
@@ -207,7 +219,7 @@ export function addFoldersView(context: Context): View {
         const photos = [];
         for (const photo of item.folder.photos.slice(0, MAX_PHOTOS_EACH)) {
           done += 1;
-          overlay.update(`Getting photos ready: ${done} of ${totalPhotos}…`);
+          overlay.update(`Getting photos ready: ${done} of ${totalPhotos}…`, totalPhotos > 1 ? (done - 1) / totalPhotos : undefined);
           try {
             photos.push(await preparePhoto(photo.file));
           } catch {
@@ -337,7 +349,7 @@ export function addFoldersView(context: Context): View {
           <span class="st-toggle__switch" aria-hidden="true"></span>
           <span class="st-toggle__text"><strong>Add as drafts</strong><small>Hidden until you switch them on</small></span>
         </label>
-        <p class="st-add__count">${pluralise(items.length, 'product')} · ${pluralise(photos, 'photo')}</p>
+        <p class="st-add__count">${pluralise(items.length, 'product')} · ${pluralise(photos, 'photo')}${photos > 60 ? ` · about ${publishMinutes(photos)} min to publish` : ''}</p>
         <button type="button" class="st-btn st-btn--primary" data-add-all ${items.length === 0 ? 'disabled' : ''}>${icon('plus', 16)} Add ${pluralise(items.length, 'product')}</button>
       `,
     );

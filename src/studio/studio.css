@@ -4030,9 +4030,12 @@ img.st-thumb.is-missing {
 }
 
 .st-busy__card {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
+  column-gap: 14px;
+  row-gap: 10px;
+  max-width: 100%;
   padding: 18px 22px;
   border: 1px solid var(--line-2);
   border-radius: 20px;
@@ -4044,6 +4047,55 @@ img.st-thumb.is-missing {
 .st-busy__text {
   margin: 0;
   font-weight: 600;
+}
+
+/* Publishing: words, a progress bar, a note and a Stop button, next to the spinner. */
+.st-busy__card.is-wide {
+  width: min(460px, 100%);
+}
+
+.st-busy__bar,
+.st-busy__note,
+.st-busy__stop {
+  grid-column: 2;
+}
+
+.st-busy__bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--pill);
+  background: var(--surface-3);
+}
+
+.st-busy__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--grad);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+  transition: transform 0.5s var(--ease);
+}
+
+.st-busy__note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.st-busy__stop {
+  justify-self: start;
+  min-height: 44px;
+  padding-inline: 18px;
+}
+
+.st-publish__text small.st-publish__error {
+  color: var(--danger);
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* ==========================================================================
@@ -5071,6 +5123,10 @@ img.st-thumb.is-missing {
   .st-dialog[open] .st-dialog__card,
   .st-busy__card {
     animation: st-fade 0.25s ease !important;
+  }
+
+  .st-busy__bar span {
+    transition: none;
   }
 
   .st-stat:hover,

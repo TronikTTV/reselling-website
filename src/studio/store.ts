@@ -100,6 +100,19 @@ export type DeployState = 'live' | 'updating' | 'stuck' | 'local' | 'unknown';
 export type Reason = 'load' | 'products' | 'text' | 'settings' | 'categories' | 'publish' | 'deploy' | 'activity';
 
 export const PRODUCTS_DIR = 'src/content/products';
+
+/**
+ * About how many new photos and videos go in each part when publishing a lot at once. Each part is
+ * saved (and goes live) before the next starts, so GitHub never has to take a huge save in one go.
+ */
+const STAGE_FILES = 40;
+
+interface Stage {
+  products: Product[];
+  /** Whether the settings, site text and categories go in this part (always the first). */
+  data: boolean;
+  files: number;
+}
 export const DATA_FILES = {
   settings: 'src/data/settings.json',
   categories: 'src/data/categories.json',
@@ -693,57 +706,146 @@ export class Store {
   // ---------------------------------------------------------------- publishing
 
   /**
-   * Saves every change as one commit. The files are re-read first, so edits made elsewhere in the
+   * Saves every change. Small changes go in one commit; lots of new photos go in parts of about 40,
+   * each saved as it's done, so a big upload never has to succeed all at once and trying again after
+   * a failure carries on with what's left. The files are re-read first, so edits made elsewhere in the
    * meantime (another phone, the classic editor) are kept rather than overwritten.
+   *
+   * `progress` gets what's happening, how far through it is (0–1), and whether Stop would work now.
    */
-  async publish(progress?: (text: string) => void): Promise<string | null> {
+  async publish(progress?: (text: string, fraction?: number, canStop?: boolean) => void, signal?: AbortSignal): Promise<string | null> {
     const problems = this.problems();
     if (problems.length > 0) throw new StudioError('invalid', problems[0]);
-    const changeList = this.changes();
-    if (changeList.length === 0) return null;
-    const message = commitMessage(changeList);
+    if (this.changes().length === 0) return null;
+    const stages = this.stages();
+    const report = { saved: 0, parts: stages.length };
+    this.publishReport = report;
 
     this.publishing = true;
     this.emit('publish');
     try {
-      // Kept across retries, so photos are only uploaded once.
-      const uploads = new Map<string, TreeChange>();
-      for (let attempt = 0; attempt < 3; attempt++) {
-        progress?.('Getting ready…');
-        const latest = await this.backend.snapshot();
-        const folders = new Map<string, string>();
-        const changes = await this.plan(latest, uploads, folders);
-        if (changes.length === 0) {
-          this.clearEdits();
-          return null;
-        }
-        const result = await this.backend.commit(latest, changes, message, progress);
-        if ('conflict' in result) continue;
-
-        progress?.('Saved. Refreshing…');
-        for (const [temporary, folder] of folders) this.renamed.set(temporary, folder);
-        this.revokeAll();
-        this.savedAt = Date.now();
-        await this.load(undefined, this.backend.kind === 'github' ? result.head : undefined);
-        this.loadActivity();
-        return result.head;
+      let head: string | null = null;
+      for (const [index, stage] of stages.entries()) {
+        if (signal?.aborted) throw new StudioError('cancelled', 'Publishing stopped.');
+        const many = stages.length > 1;
+        const partProgress = (text: string, fraction?: number) =>
+          progress?.(many ? `Part ${index + 1} of ${stages.length} · ${text}` : text, many ? (index + (fraction ?? 0)) / stages.length : fraction, text !== 'Saving…');
+        head = (await this.publishStage(stage, partProgress, signal, many ? `part ${index + 1} of ${stages.length}` : '')) ?? head;
+        report.saved = index + 1;
       }
-      throw new StudioError('conflict', 'The store kept changing while saving (maybe from another device). Try again in a moment.');
+      if (!head) return null;
+
+      progress?.('Saved. Refreshing…', stages.length > 1 ? 1 : undefined, false);
+      this.revokeAll();
+      this.savedAt = Date.now();
+      await this.load(undefined, this.backend.kind === 'github' ? head : undefined);
+      this.loadActivity();
+      return head;
     } finally {
       this.publishing = false;
       this.emit('publish');
     }
   }
 
-  private clearEdits() {
-    for (const product of [...this.products.values()]) {
-      if (product.isNew || product.deleted) this.forget(product);
-      else {
-        product.edits = {};
-        product.media = new Map();
+  /** How far the last Publish got: parts saved, out of how many (to explain a failure part-way). */
+  publishReport: { saved: number; parts: number } | null = null;
+
+  /** New photos and videos a product would upload. */
+  private newFiles(product: Product): number {
+    const used = new Set([...product.data.images, product.data.video].filter(Boolean));
+    return [...product.media.values()].filter((media) => media.blob && used.has(media.name)).length;
+  }
+
+  /** Splits what's unpublished into parts: small changes first, then new photos about 40 at a time. */
+  private stages(): Stage[] {
+    const pending = [...this.products.values()].filter((product) => this.hasChanges(product));
+    const limit = this.backend.kind === 'github' ? STAGE_FILES : Infinity;
+    const first: Stage = {
+      products: pending.filter((product) => product.deleted || this.newFiles(product) === 0),
+      data: [...this.json.values()].some((doc) => doc.edits.size > 0),
+      files: 0,
+    };
+    const stages = [first];
+    for (const product of pending) {
+      const files = product.deleted ? 0 : this.newFiles(product);
+      if (files === 0) continue;
+      let stage = stages[stages.length - 1];
+      if (stage.files > 0 && stage.files + files > limit) {
+        stage = { products: [], data: false, files: 0 };
+        stages.push(stage);
+      }
+      stage.products.push(product);
+      stage.files += files;
+    }
+    return stages.filter((stage) => stage.products.length > 0 || stage.data);
+  }
+
+  /** Saves one part as a commit (starting again if the store changed meanwhile), then marks it saved. */
+  private async publishStage(stage: Stage, progress: (text: string, fraction?: number) => void, signal: AbortSignal | undefined, part: string): Promise<string | null> {
+    const ids = new Set(stage.products.map((product) => product.id));
+    const message = commitMessage(
+      this.changes().filter((change) => ids.has(change.id) || (stage.data && (change.kind === 'text' || change.kind === 'settings' || change.kind === 'categories'))),
+      part,
+    );
+    // Kept across retries, so photos are only uploaded once (GitHubBackend also remembers them
+    // between presses of Publish, so trying again after a failure carries on where it stopped).
+    const uploads = new Map<string, TreeChange>();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      progress('Getting ready…');
+      const latest = await this.backend.snapshot();
+      const folders = new Map<string, string>();
+      const changes = await this.plan(latest, uploads, folders, stage);
+      if (changes.length === 0) {
+        // Already saved (e.g. the same edit made elsewhere): nothing left to do for this part.
+        this.settle(stage, latest, [], folders);
+        return null;
+      }
+      const result = await this.backend.commit(latest, changes, message, { progress, signal });
+      if ('conflict' in result) continue;
+      this.settle(stage, await this.backend.snapshot(this.backend.kind === 'github' ? result.head : undefined), changes, folders);
+      return result.head;
+    }
+    throw new StudioError('conflict', 'The store kept changing while saving (maybe from another device). Try again in a moment.');
+  }
+
+  /** After a part is saved, its products, text and settings are no longer "not live yet". */
+  private settle(stage: Stage, snapshot: Snapshot, changes: TreeChange[], folders: Map<string, string>) {
+    const written = new Map(changes.filter((change) => change.content !== undefined).map((change) => [change.path, change.content as string]));
+    for (const product of stage.products) {
+      if (product.deleted) {
+        this.forget(product);
+        continue;
+      }
+      let saved = product;
+      if (product.isNew) {
+        const folder = folders.get(product.id);
+        if (!folder) continue;
+        // Now known by its folder. Keeps its new photos' previews until the Studio reloads.
+        this.renamed.set(product.id, folder);
+        this.products.delete(product.id);
+        saved = { ...product, id: folder, isNew: false, dir: `${PRODUCTS_DIR}/${folder}` };
+        this.products.set(folder, saved);
+      }
+      const path = `${saved.dir}/index.md`;
+      saved.file = snapshot.files.get(path) ?? saved.file;
+      saved.raw = written.get(path) ?? saved.raw;
+      saved.base = { ...saved.data };
+      saved.edits = {};
+    }
+    if (stage.data) {
+      for (const doc of this.json.values()) {
+        if (doc.edits.size === 0) continue;
+        const text = written.get(doc.path);
+        if (text !== undefined) {
+          doc.raw = text;
+          doc.base = parseJson(text);
+        }
+        doc.file = snapshot.files.get(doc.path) ?? doc.file;
+        doc.edits.clear();
       }
     }
-    for (const doc of this.json.values()) doc.edits.clear();
+    this.snapshot = snapshot;
+    this.savedAt = Date.now();
     this.emit('products');
   }
 
@@ -753,8 +855,8 @@ export class Store {
     this.blobUrls.clear();
   }
 
-  /** Works out the file changes for everything unpublished, on top of the latest saved files. */
-  private async plan(latest: Snapshot, uploads: Map<string, TreeChange>, folders: Map<string, string>): Promise<TreeChange[]> {
+  /** Works out the file changes for one part of what's unpublished, on top of the latest saved files. */
+  private async plan(latest: Snapshot, uploads: Map<string, TreeChange>, folders: Map<string, string>, stage: Stage): Promise<TreeChange[]> {
     const changes: TreeChange[] = [];
     const readLatest = async (path: string, file: RemoteFile | undefined, raw: string | null): Promise<string | null> => {
       const remote = latest.files.get(path);
@@ -776,7 +878,7 @@ export class Store {
       }
     };
 
-    for (const product of this.products.values()) {
+    for (const product of stage.products) {
       if (!this.hasChanges(product)) continue;
 
       if (product.deleted) {
@@ -809,7 +911,7 @@ export class Store {
       }
     }
 
-    for (const doc of this.json.values()) {
+    for (const doc of stage.data ? this.json.values() : []) {
       if (doc.edits.size === 0) continue;
       const text = await readLatest(doc.path, doc.file, doc.raw);
       const value = text === null ? {} : parseJson(text);
@@ -861,7 +963,7 @@ function newFolder(title: string, latest: Snapshot): string {
   }
 }
 
-function commitMessage(changes: Change[]): string {
+function commitMessage(changes: Change[], part = ''): string {
   const line = (change: Change) =>
     change.kind === 'product-new'
       ? `Add ${change.title.replace(/^New: /, '')}`
@@ -872,6 +974,8 @@ function commitMessage(changes: Change[]): string {
           : `Update ${change.title.toLowerCase()}`;
   const lines = changes.map(line);
   const title = lines.length === 1 ? lines[0] : `Update ${changes.length} things: ${changes.map((change) => change.title.replace(/^(New|Delete): /, '')).join(', ')}`;
-  const short = title.length > 72 ? `${title.slice(0, 71)}…` : title;
-  return `${short}\n\n${lines.length > 1 ? `${lines.map((item) => `- ${item}`).join('\n')}\n\n` : ''}Saved from the store admin (Studio).`;
+  const label = part ? ` (${part})` : '';
+  const room = 72 - label.length;
+  const short = title.length > room ? `${title.slice(0, room - 1)}…` : title;
+  return `${short}${label}\n\n${lines.length > 1 ? `${lines.map((item) => `- ${item}`).join('\n')}\n\n` : ''}Saved from the store admin (Studio).`;
 }

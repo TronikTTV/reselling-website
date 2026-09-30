@@ -151,20 +151,43 @@ export function openSheet(options: { title: string; content: Markup; wide?: bool
 
 // ---------------------------------------------------------------- busy overlay
 
-export function busy(text: string) {
+/**
+ * A "please wait" card over the page. `update` changes its words and, given a fraction (0–1), shows a
+ * progress bar. With `stop`, it has a Stop button until `lock` is called.
+ */
+export function busy(text: string, options: { note?: string; stop?: () => void } = {}) {
   const overlay = fragment(html`
     <div class="st-busy" role="status" aria-live="polite">
-      <div class="st-busy__card">
+      <div class="st-busy__card ${options.note || options.stop ? 'is-wide' : ''}">
         <span class="st-spinner" aria-hidden="true"></span>
         <p class="st-busy__text" data-busy-text>${text}</p>
+        <div class="st-busy__bar" data-busy-bar hidden><span></span></div>
+        ${options.note ? html`<p class="st-busy__note">${options.note}</p>` : ''}
+        ${options.stop ? html`<button type="button" class="st-btn st-btn--ghost st-btn--sm st-busy__stop" data-busy-stop>Stop</button>` : ''}
       </div>
     </div>
   `);
+  const stop = $<HTMLButtonElement>('[data-busy-stop]', overlay);
+  stop?.addEventListener('click', () => {
+    stop.disabled = true;
+    stop.textContent = 'Stopping…';
+    options.stop?.();
+  });
   document.body.append(overlay);
   return {
-    update: (value: string) => {
+    update: (value: string, fraction?: number) => {
       const target = $('[data-busy-text]', overlay);
       if (target) target.textContent = value;
+      const bar = $<HTMLElement>('[data-busy-bar]', overlay);
+      if (bar && fraction !== undefined) {
+        bar.hidden = false;
+        bar.parentElement?.classList.add('is-wide');
+        bar.style.setProperty('--progress', String(Math.min(1, Math.max(0, fraction))));
+      }
+    },
+    /** Shows or hides the Stop button (hidden while stopping wouldn't take effect). */
+    stoppable: (on: boolean) => {
+      if (stop) stop.hidden = !on;
     },
     close: () => {
       overlay.classList.add('is-leaving');

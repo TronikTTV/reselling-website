@@ -137,6 +137,12 @@ function fakeGitHub(files) {
       return head;
     },
     message: () => commits.get(head).message,
+    /** Every commit's message on the branch, oldest first. */
+    history: () => {
+      const list = [];
+      for (let sha = head; sha; sha = commits.get(sha).parents[0]) list.unshift(commits.get(sha).message);
+      return list;
+    },
     text: (path) => {
       const sha = treeOf(head).get(path);
       return sha ? blobs.get(sha).toString('utf8') : undefined;
@@ -177,12 +183,43 @@ const STARTING_FILES = {
 
 const config = { repo: 'me/store', branch: 'main', base: '/', site: 'https://example.com/', keyUrl: '', dev: false, siteName: 'Central Supply' };
 
-async function openStore(github, key = 'good-key') {
-  globalThis.fetch = github.fetch;
-  const store = new Store(config, new GitHubBackend('me/store', 'main', key));
+/** A pretend clock, so waiting for GitHub takes no real time in tests. */
+function fakeClock(start = Date.parse('2026-09-29T12:00:00Z')) {
+  const clock = {
+    time: start,
+    now: () => clock.time,
+    sleep: async (ms) => {
+      clock.time += ms;
+    },
+  };
+  return clock;
+}
+
+async function openStore(github, key = 'good-key', options = {}) {
+  globalThis.fetch = options.fetch ?? github.fetch;
+  const clock = options.clock ?? fakeClock();
+  const store = new Store(config, new GitHubBackend('me/store', 'main', key, undefined, { sleep: clock.sleep, now: clock.now, ...options.limits }));
   await store.load();
   return store;
 }
+
+/** Adds a new product with `count` photos, like "Add from folders" does. */
+function addProductWithPhotos(store, title, count) {
+  const product = store.createProduct('hats');
+  store.updateProduct(product.id, { title, price: 50 });
+  store.addPhotos(
+    product.id,
+    Array.from({ length: count }, (_, index) => ({ name: `photo-${index + 1}-abcde.webp`, blob: new Blob([`${title} photo ${index + 1}`], { type: 'image/webp' }) })),
+  );
+  return product;
+}
+
+const isBlobUpload = (input, init) => init?.method === 'POST' && String(input).endsWith('/git/blobs');
+const rateLimited = (headers = {}) =>
+  new Response(JSON.stringify({ message: 'You have exceeded a secondary rate limit. Please wait a few minutes before you try again.' }), {
+    status: 403,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
 
 test('product files: untouched fields keep their formatting', () => {
   const data = parseProduct(PRODUCT);
@@ -365,5 +402,212 @@ test('undoing a change back to how it was leaves nothing to publish', async () =
   store.updateProduct('black-cap', { price: 25 });
   store.setText('copy:home.shopButton', 'Something else');
   store.setText('copy:home.shopButton', 'Shop the drop');
+  assert.deepEqual(store.changes(), []);
+});
+
+test('publishing lots of photos: sent about one a second, and a "slow down" from GitHub is waited out', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  const clock = fakeClock();
+  const sentAt = [];
+  let refusals = 1;
+  const fetch = async (input, init) => {
+    if (isBlobUpload(input, init)) {
+      // GitHub turns the third photo away once, asking for 30 seconds' break.
+      if (sentAt.length === 2 && refusals-- > 0) return rateLimited({ 'retry-after': '30' });
+      sentAt.push(clock.time);
+    }
+    return github.fetch(input, init);
+  };
+  const store = await openStore(github, 'good-key', { fetch, clock });
+  addProductWithPhotos(store, 'Jordan 4 Military Black', 6);
+
+  const messages = [];
+  const fractions = [];
+  const head = await store.publish((text, fraction) => {
+    messages.push(text);
+    if (fraction !== undefined) fractions.push(fraction);
+  });
+
+  assert.ok(head, 'published');
+  const folder = github.paths().find((path) => /^src\/content\/products\/jordan-4-military-black-[0-9a-f]{4}\/index\.md$/.test(path));
+  assert.ok(folder);
+  for (let index = 1; index <= 6; index++) {
+    assert.equal(github.text(folder.replace('index.md', `photo-${index}-abcde.webp`)), `Jordan 4 Military Black photo ${index}`);
+  }
+  assert.equal(sentAt.length, 6, 'each photo stored once');
+  for (let index = 1; index < sentAt.length; index++) assert.ok(sentAt[index] - sentAt[index - 1] >= 1000, 'at most one photo a second');
+  assert.ok(sentAt[2] - sentAt[1] >= 30_000, 'waited as long as GitHub asked');
+  assert.ok(messages.some((text) => /GitHub asked for a short break/.test(text)));
+  assert.ok(messages.some((text) => /^Uploading photo 6 of 6/.test(text)));
+  assert.deepEqual(fractions.slice(0, 2), [0, 1 / 6]);
+  assert.equal(fractions.at(-1), 1);
+});
+
+test('publishing: after it fails part-way, trying again carries on without sending photos twice', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  let stored = 0;
+  let dropsAfter = 3;
+  const fetch = async (input, init) => {
+    if (isBlobUpload(input, init)) {
+      // The connection drops after three photos, for longer than the Studio's own retries.
+      if (stored === dropsAfter) throw new TypeError('Failed to fetch');
+      stored += 1;
+    }
+    return github.fetch(input, init);
+  };
+  const store = await openStore(github, 'good-key', { fetch });
+  addProductWithPhotos(store, 'Corteiz Alcatraz Hoodie', 5);
+  const before = github.head;
+
+  await assert.rejects(store.publish(), (error) => error.kind === 'network');
+  assert.equal(github.head, before, 'nothing saved');
+  assert.equal(store.changes().length, 1, 'the new product is still waiting to be published');
+
+  dropsAfter = -1; // Back online.
+  const head = await store.publish();
+  assert.ok(head);
+  assert.equal(stored, 5, 'the three photos sent before were not sent again');
+  const folder = github.paths().find((path) => path.includes('corteiz-alcatraz-hoodie-') && path.endsWith('/index.md'));
+  assert.match(github.text(folder), /- photo-5-abcde\.webp/);
+  assert.equal(github.text(folder.replace('index.md', 'photo-1-abcde.webp')), 'Corteiz Alcatraz Hoodie photo 1');
+});
+
+test('publishing: Stop ends it before anything is saved, and the next try finishes the job', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  const store = await openStore(github);
+  addProductWithPhotos(store, 'Stussy 8 Ball Tee', 4);
+  const before = github.head;
+
+  const stopper = new AbortController();
+  await assert.rejects(
+    store.publish((text) => {
+      if (/^Uploading photo 3 of 4/.test(text)) stopper.abort();
+    }, stopper.signal),
+    (error) => error.kind === 'cancelled',
+  );
+  assert.equal(github.head, before, 'nothing saved');
+  assert.equal(store.publishing, false);
+  assert.equal(store.changes().length, 1);
+
+  const uploads = () => github.calls.filter((call) => call === 'POST /repos/me/store/git/blobs').length;
+  assert.ok(uploads() < 4, 'stopped before sending them all');
+  assert.ok(await store.publish());
+  assert.equal(uploads(), 4, 'the rest were sent on the next try, none twice');
+  assert.ok(github.paths().some((path) => path.includes('stussy-8-ball-tee-') && path.endsWith('photo-4-abcde.webp')));
+});
+
+test('publishing: a save whose answer is lost on the way back still counts as saved (no duplicates)', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  let dropAnswer = true;
+  const fetch = async (input, init) => {
+    const response = await github.fetch(input, init);
+    // GitHub moves the branch, but the answer never arrives.
+    if (init?.method === 'PATCH' && dropAnswer) {
+      dropAnswer = false;
+      throw new TypeError('Failed to fetch');
+    }
+    return response;
+  };
+  const store = await openStore(github, 'good-key', { fetch });
+  addProductWithPhotos(store, 'Nike Tech Fleece', 1);
+  const head = await store.publish();
+  assert.equal(head, github.head);
+  assert.equal(github.paths().filter((path) => path.includes('nike-tech-fleece-') && path.endsWith('/index.md')).length, 1);
+  assert.deepEqual(store.changes(), []);
+});
+
+test('publishing more photos than GitHub takes in an hour waits for the next hour, then finishes', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  const clock = fakeClock();
+  const start = clock.time;
+  const store = await openStore(github, 'good-key', { clock, limits: { perHour: 4 } });
+  addProductWithPhotos(store, 'Carhartt Detroit Jacket', 6);
+  const messages = [];
+  assert.ok(await store.publish((text) => messages.push(text)));
+  assert.ok(clock.time - start >= 60 * 60_000, 'waited for the hour');
+  assert.ok(messages.some((text) => /GitHub takes about 500 photos an hour/.test(text)));
+  assert.equal(github.paths().filter((path) => path.includes('carhartt-detroit-jacket-') && path.endsWith('.webp')).length, 6);
+});
+
+test('GitHub saying "too many requests" is explained plainly when waiting would take too long', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  const clock = fakeClock();
+  const fetch = async (input, init) =>
+    // Out of requests until two hours from now: longer than the Studio waits.
+    isBlobUpload(input, init)
+      ? rateLimited({ 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(Math.round(clock.time / 1000) + 2 * 3600) })
+      : github.fetch(input, init);
+  const store = await openStore(github, 'good-key', { fetch, clock });
+  addProductWithPhotos(store, 'Arc Teryx Beta', 1);
+  await assert.rejects(store.publish(), (error) => error.kind === 'rate' && /Wait a few minutes, then try again/.test(error.message));
+});
+
+test('a big upload is published in parts of about 40 photos, each saved as it goes', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  const store = await openStore(github);
+  for (let index = 1; index <= 5; index++) addProductWithPhotos(store, `Drop ${index}`, 12);
+  store.setText('site:heroHeading', 'New drop.');
+
+  const messages = [];
+  const stoppable = [];
+  const head = await store.publish((text, fraction, canStop) => {
+    messages.push(text);
+    stoppable.push(canStop);
+  });
+  assert.ok(head);
+
+  // 60 photos: three products (36 photos, plus the text) in part 1, two in part 2.
+  const saves = github.history().slice(1);
+  assert.equal(saves.length, 2);
+  assert.match(saves[0], /^Update 4 things: .*\(part 1 of 2\)\n/);
+  assert.match(saves[1], /^Update 2 things: Drop 4, Drop 5 \(part 2 of 2\)\n/);
+  assert.ok(messages.some((text) => /^Part 1 of 2 · Uploading photo 36 of 36/.test(text)));
+  assert.ok(messages.some((text) => /^Part 2 of 2 · Uploading photo 24 of 24/.test(text)));
+  assert.equal(stoppable[messages.indexOf('Part 1 of 2 · Saving…')], false, 'no Stop while a part is saving');
+
+  for (let index = 1; index <= 5; index++) {
+    const folder = github.paths().find((path) => path.startsWith(`src/content/products/drop-${index}-`) && path.endsWith('/index.md'));
+    assert.ok(folder, `Drop ${index} saved`);
+    assert.equal(github.paths().filter((path) => path.startsWith(folder.replace('index.md', '')) && path.endsWith('.webp')).length, 12);
+  }
+  assert.equal(JSON.parse(github.text('src/data/settings.json')).heroHeading, 'New drop.');
+  assert.deepEqual(store.changes(), []);
+});
+
+test('if a later part fails, the parts before stay saved, and trying again finishes the rest once', async () => {
+  const github = fakeGitHub(STARTING_FILES);
+  let stored = 0;
+  let broken = true;
+  const fetch = async (input, init) => {
+    if (isBlobUpload(input, init)) {
+      // GitHub keeps failing ("error 500") from the 37th photo, i.e. in part 2.
+      if (broken && stored === 36) return new Response(JSON.stringify({ message: 'Server Error' }), { status: 500 });
+      stored += 1;
+    }
+    return github.fetch(input, init);
+  };
+  const store = await openStore(github, 'good-key', { fetch });
+  for (let index = 1; index <= 5; index++) addProductWithPhotos(store, `Drop ${index}`, 12);
+
+  const messages = [];
+  await assert.rejects(
+    store.publish((text) => messages.push(text)),
+    (error) => error.kind === 'server' && /500/.test(error.message),
+  );
+  assert.ok(messages.some((text) => /GitHub didn't answer properly/.test(text)), 'retried before giving up');
+  assert.deepEqual(store.publishReport, { saved: 1, parts: 2 });
+  const savedFolders = () => github.paths().filter((path) => /^src\/content\/products\/drop-\d-[0-9a-f]{4}\/index\.md$/.test(path));
+  assert.equal(savedFolders().length, 3, 'part 1 is on the branch');
+  assert.deepEqual(
+    store.changes().map((change) => change.title),
+    ['New: Drop 4', 'New: Drop 5'],
+    'only part 2 is still waiting',
+  );
+  assert.ok(store.product(savedFolders()[0].split('/')[3]), 'saved products are shown under their folder');
+
+  broken = false;
+  assert.ok(await store.publish());
+  assert.equal(savedFolders().length, 5, 'no duplicates');
+  assert.equal(stored, 60, 'every photo stored exactly once');
   assert.deepEqual(store.changes(), []);
 });

@@ -180,6 +180,9 @@ export function mountShell(root: HTMLElement, store: Store, signOut: () => void)
   // ---------------------------------------------------------------- live status
 
   let wasUpdating = store.deployState() === 'updating';
+  /** Why the last Publish didn't finish, shown in the Publish bar until the next try. */
+  let publishError = '';
+  let closeErrorToast: (() => void) | undefined;
   let statusTimer: number | undefined;
 
   function renderStatus() {
@@ -273,6 +276,7 @@ export function mountShell(root: HTMLElement, store: Store, signOut: () => void)
 
   function renderPublishBar() {
     const changes = store.changes();
+    if (changes.length === 0) publishError = '';
     const visible = changes.length > 0 || store.publishing;
     publishBar.hidden = !visible;
     app.classList.toggle('has-publish', visible);
@@ -284,7 +288,9 @@ export function mountShell(root: HTMLElement, store: Store, signOut: () => void)
           <span class="st-publish__pulse" aria-hidden="true"></span>
           <p class="st-publish__text">
             <strong>${pluralise(changes.length, 'change')} not live yet</strong>
-            <small>${changes.slice(0, 2).map((change) => change.title).join(' · ')}${changes.length > 2 ? ` +${changes.length - 2}` : ''}</small>
+            ${publishError && !store.publishing
+              ? html`<small class="st-publish__error">Last try didn't finish: ${publishError}</small>`
+              : html`<small>${changes.slice(0, 2).map((change) => change.title).join(' · ')}${changes.length > 2 ? ` +${changes.length - 2}` : ''}</small>`}
           </p>
           <button type="button" class="st-btn st-btn--ghost st-btn--sm" data-action="review">Review</button>
           <button type="button" class="st-btn st-btn--primary st-btn--sm" data-action="publish" ${store.publishing ? 'disabled' : ''}>
@@ -302,11 +308,21 @@ export function mountShell(root: HTMLElement, store: Store, signOut: () => void)
       toast(problems[0], { tone: 'warn' });
       return;
     }
-    const overlay = busy('Getting ready…');
+    const stopper = new AbortController();
+    const overlay = busy('Getting ready…', {
+      note: 'Keep this page open until it says saved. Lots of photos go up in parts and can take a few minutes.',
+      stop: store.backend.kind === 'github' ? () => stopper.abort() : undefined,
+    });
+    publishError = '';
+    closeErrorToast?.();
+    renderPublishBar();
     // On this PC the preview reloads the page as soon as files are saved: say "saved" after it.
     if (store.backend.kind === 'local') sessionStorage.setItem(JUST_SAVED, String(Date.now()));
     try {
-      const head = await store.publish((text) => overlay.update(text));
+      const head = await store.publish((text, fraction, canStop) => {
+        overlay.update(text, fraction);
+        overlay.stoppable(canStop !== false && !stopper.signal.aborted);
+      }, stopper.signal);
       sessionStorage.removeItem(JUST_SAVED);
       overlay.close();
       if (!head) {
@@ -324,11 +340,35 @@ export function mountShell(root: HTMLElement, store: Store, signOut: () => void)
     } catch (error) {
       overlay.close();
       sessionStorage.removeItem(JUST_SAVED);
-      if (error instanceof StudioError && error.kind === 'auth') {
-        toast(error.message, { tone: 'error', action: { label: 'Sign in again', run: signOut } });
-      } else {
-        toast(errorMessage(error), { tone: 'error' });
+      // Big uploads go in parts: say which parts made it (they go live like any other save).
+      const report = store.publishReport;
+      const partly = report && report.saved > 0 && report.saved < report.parts;
+      const savedText = partly
+        ? `${report.saved === 1 ? 'Part 1' : `Parts 1–${report.saved}`} of ${report.parts} ${report.saved === 1 ? 'is' : 'are'} saved and ${report.saved === 1 ? 'goes' : 'go'} live in about a minute. `
+        : '';
+      if (partly) {
+        wasUpdating = true;
+        schedulePoll();
+        renderStatus();
       }
+      if (error instanceof StudioError && error.kind === 'cancelled') {
+        toast(`${savedText}Publishing stopped. The rest is still here: press Publish when you're ready, and it carries on where it stopped.`, {
+          tone: 'info',
+          timeout: 12000,
+        });
+      } else if (error instanceof StudioError && error.kind === 'auth') {
+        toast(error.message, { tone: 'error', timeout: 0, action: { label: 'Sign in again', run: signOut } });
+      } else {
+        // Stays until closed, so there's time to read it.
+        publishError = errorMessage(error);
+        const resume = store.backend.kind === 'github' ? ", and photos already sent won't be sent twice" : '';
+        closeErrorToast = toast(`${savedText}Couldn't publish ${partly ? 'the rest' : 'this time'}: ${publishError} Your changes are still here${resume}.`, {
+          tone: 'error',
+          timeout: 0,
+          action: { label: 'Try again', run: () => publish() },
+        });
+      }
+      renderPublishBar();
     }
   }
 
